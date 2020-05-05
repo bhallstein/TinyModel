@@ -119,11 +119,11 @@
 			if ($this->test == self::Recent) {
 				// period should be stored in val
 				$s = 'unix_timestamp(now()) - unix_timestamp(' .
-						escape_string($this->column) . ') < ' . (int)$this->val;
+						mysql_real_escape_string($this->column) . ') < ' . (int)$this->val;
 			}
 			else if ($this->column === 'password') {
 				$s = "{$prefix}password = md5(sha(concat(salt, '" .
-						escape_string($this->value) .
+						mysql_real_escape_string($this->value) .
 						"')))";
 			}
 			else {
@@ -223,15 +223,15 @@
 		
 		static function conditionStr($c, $prefix = '') {
 			$s = '';
-
+			
 			if ($c instanceof Condition) {
 				$s .= 'where ';
 				$s .= $c->toStr($prefix);
 			}
-
+			
 			else if (is_array($c) && count($c)) {
 				// Iterate recursively over the array of conditions
-				$getConditionStringForArray = function($a) use(&$getConditionStringForArray) {
+				$getConditionStringForArray = function($a) use(&$getConditionStringForArray, $prefix) {
 					$conjunction = null;
 					$s = '';
 					foreach ($a as $c) {
@@ -245,7 +245,7 @@
 					}
 					return $s;
 				};
-				$s .= $getConditionStringForArray($c);
+				$s .= 'where ' . $getConditionStringForArray($c);
 			}
 			
 			return $s;
@@ -353,7 +353,7 @@
 			
 			$cond = self::conditionStr($conditions, 'a');
 			if ($cond === '') return false;
-
+			
 			$q = "select $query_select_columns from $table as a $query_joins $cond";
 			if ($debug) var_dump($q);
 			$r = mysql_query($q);

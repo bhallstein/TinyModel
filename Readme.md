@@ -103,7 +103,7 @@ A Condition object, or an array of Condition objects governing which rows in the
 
 `insert()`
 
-Instance method. Insert an object into its corresponding table. You first create an instance, filling out its properties, then simply call `insert()`. Return values:
+Instance method. Insert an object into its corresponding table. You first create an instance, filling out its properties, then simply call `insert()` on it. Return values:
 
 - the id of the inserted row on success
 - an array of errors if insert values did not match the field types or restrictions of the table columns
