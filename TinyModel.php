@@ -90,7 +90,7 @@
 		private $column;
 		private $test;
 		private $value;
- 		public $conjoinment;
+ 		public $conjunction;
 		
 		private static $testStrings;
 		
@@ -105,11 +105,11 @@
 		const _And = 20;
 		const _Or = 21;
 		
-		public function __construct($col, $val, $test = self::Equals, $conjoinment = self::_And) {
+		public function __construct($col, $val, $test = self::Equals, $conjunction = self::_And) {
 			$this->column = $col;
 			$this->value = $val;
 			$this->test = $test;
-			$this->conjoinment = ($conjoinment == self::_And ? 'and' : 'or');
+			$this->conjunction = ($conjunction == self::_And ? 'and' : 'or');
 		}
 		
 		public function toStr($prefix = '') {
@@ -233,15 +233,15 @@
 				echo "iterating...\n";
 				// Iterate recursively over the array of conditions
 				$getConditionStringForArray = function($a) use(&$getConditionStringForArray) {
-					$conjoinment = null;
+					$conjunction = null;
 					$s = '';
 					foreach ($a as $c) {
-						if ($conjoinment) $s .= $conjoinment . ' ';
+						if ($conjunction) $s .= $conjunction . ' ';
 						if (is_array($c))
 							$s .= '(' . $getConditionStringForArray($c) . ') ';
 						else if ($c instanceof Condition) {
 							$s .= $c->toStr($prefix) . ' ';
-							$conjoinment = $c->conjoinment;
+							$conjunction = $c->conjunction;
 						}
 					}
 					return $s;

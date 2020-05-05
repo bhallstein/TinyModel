@@ -4,15 +4,15 @@ TinyModel is a PHP superclass that lets you very easily define the Model layer o
 
 ## Defining tables
 
-To configure TinyModel, you create a set of subclasses, each representing a table in your database schema. The columns of the table are defined using class constants, specifying the name and type of the column, and optional restrictions that apply to what may be inserted into it.
+To configure TinyModel, you create a set of subclasses, each representing a table in your database schema. The columns of the table are defined using class constants, specifying the name and type of the column, and optional restrictions on the values that may be inserted into it.
 
 ### Class & table names
 
-With TinyModel, the name of the table is always the (lowercase) plural of the name of the class. To define a table `users`, you just create a class called User.
+With TinyModel, the name of the table is the (lowercase) plural of the name of the class. To define a table `users`, you create a class called `User`.
 
 ### Column specification
 
-To define a column in your table, you create a class constant with the same name as the column, and initialize it with a *column specification string*, with the format `"type [restrictions]"`:
+To define a column, you create a class constant with the same name as the column, and initialize it with a *column specification string*, with the format `"type [restrictions]"`:
 
 - type: one of the following: `int`, `float`, `varchar`, `text`, `timestamp`
 - restrictions: one or more of: `alphabetical`, `alphanumeric`, `email`, `url`, `positive`, `notnull`, `maxlength=N`
@@ -22,18 +22,18 @@ To define a column in your table, you create a class constant with the same name
 If you have tables `users` and `items`, you might create two classes as follows:
 
     class User extends TinyModel {
-    	const userid = 'int  notnull';
+    	const userid   = 'int notnull';
     	const username = 'varchar alphanumeric maxlength=20';
-    	const email = 'varchar email';
+    	const email    = 'varchar email';
     }
     
     class Items extends TinyModel {
-    	const itemid = 'int notnull';
-    	const userid = 'int notnull';
+    	const itemid   = 'int notnull';
+    	const userid   = 'int notnull';
     	const itemname = 'varchar maxlength=20';
     }
 
-Interacting with these tables is then very straightforward, using the methods detailed below.
+Interacting with these tables is then very straightforward, via the three methods detailed below.
 
 
 ## Methods
@@ -85,13 +85,13 @@ Parameters:
 
 - *updates*
 
-An associative array of updates to perform, where the key specified the column, and the value the new entry.
+An associative array of updates to perform, where the key specifies the column, and the value the new entry for that column.
 
 - *conditions*
 
 A Condition object, or an array of Condition objects governing which rows in the table will be updated with new value(s).
 
-*e.g.* Update username of user with userid 12 to `jimmy`:
+*e.g.* Update username of user with userid 12 to ‘jimmy’:
 
     User::update(
         array('username' => 'jimmy'),
@@ -103,7 +103,7 @@ A Condition object, or an array of Condition objects governing which rows in the
 
 `insert()`
 
-Instance method. Insert an object into its corresponding table. You first construct an instance, filling out its properties, then simply call `insert()`. Return values:
+Instance method. Insert an object into its corresponding table. You first create an instance, filling out its properties, then simply call `insert()`. Return values:
 
 - the id of the inserted row on success
 - an array of errors if insert values did not match the field types or restrictions of the table columns
@@ -124,15 +124,17 @@ Condition objects are used to control which rows should be fetched or updated. T
 - *column:* The name of the column the condition applies to
 - *value:* The value to test against
 - *test:* One of the following constants. The default is Equals.
-	- Condition::Equals
-	- NotEquals
-	- LessThan
-	- LessThanOrEquals
-	- GreaterThan
-	- GreaterThanOrEquals
-	- Recent
-		- This is used to secify a timestamp column with a time value up to a certain time in the past. When the “Recent” condition is used, the value field specifies the number of seconds before the current timestamp that is to be considered a match.
-- *"conjoinment:"* You can pass a nested array of Conditions to the `fetch` or `update` methods, allowing you to specify a set of conditions such as `where userid < 76 or (email = 'a@b.com' and username = 'geoff'). This would be represented as follows:
+	- `Condition::Equals`
+	- `NotEquals`
+	- `LessThan`
+	- `LessThanOrEquals`
+	- `GreaterThan`
+	- `GreaterThanOrEquals`
+	- `Recent`
+		- This is used to secify a timestamp column with a time value up to a certain amount of time in the past. When the `Recent` condition is used, the value field of the Condition specifies the number of seconds before the current timestamp that should be considered a match.
+- *conjunction:* You can pass a nested array of Conditions to the `fetch` or `update` methods, allowing you to specify a set of conditions such as `where userid < 76 or (email = 'a@b.com' and username = 'geoff')`. The `conjunction` parameter specifies the conjunction with which the *following* condition or array of conditions relates to the current one: ‘or’ or ‘and’.
+
+i.e. The aforementioned nested set of conditions would be represented as follows:
 
     User::fetch(
     	array(
@@ -144,18 +146,18 @@ Condition objects are used to control which rows should be fetched or updated. T
     	)
     );
 
-The default conjoinment is `Condition::_And`
+The default conjunction is `Condition::_And`.
     
     
 ### Join objects
 
-You can pass a Join object or an array of Join objects to a call to `fetch`, to (left) join the results returned by this table to other tables.
+You can pass a Join object or an array of Join objects to a call to `fetch`, to join the results returned from this table to other tables.
 
 The constructor has the arguments:
 
-- *class:* The name of the class – *not* the table name. For instance, `'User'`.
-- *columns:* The name of the column(s) on which to join, as a string. If an array of strings is passed, each specified column must contain the same datum in both tables for the rows to be joined.
-- *joins:* Optionally, one or more further joins to perform off the joined table.
+- *class:* The name of the class (*not* the table name). For instance, `'User'`.
+- *columns:* The name of the column(s) on which to join, as a string. The columns must have the same name in both tables. If an array of strings is passed, each specified column must contain the same datum in both tables for the rows to be joined.
+- *joins:* Optionally, a further Join or array of Joins to perform off the joined table.
 
 
 ### Password columns
@@ -169,7 +171,7 @@ At present, this is the only way passwords are handled in TinyModel. It has the 
 
 For a simple web app, you might typically define your TinyModel subclasses in a single file, thereby specifying the tables you wish to communicate with.
 
-The controller layer includes this file, and can then makes calls to the `fetch`, `update` and `insert` methods of your subclasses.
+The controller layer includes this file, and can then interact with the subclasses, make calls to TinyModel’s `fetch`, `update` and `insert` methods.
 
 For a functioning example, see the file `demo.php`. (You will need to need to create the relevant database and tables.)
 
