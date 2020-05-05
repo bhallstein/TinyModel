@@ -1,6 +1,6 @@
 <?
 	/*
-	 * TM_Generic_DB_TestCase.php
+	 * TM_Generic_TestCase.php
 	 *
 	 * Define an abstract base class to manage a connection
 	 * Added 6/11/2014 by Ben Hallstein
@@ -9,7 +9,7 @@
 
 	require_once('testdata/test_data_initial.php');
 
-	abstract class TM_Generic_DB_TestCase extends PHPUnit_Framework_TestCase
+	abstract class TM_Generic_TestCase extends PHPUnit_Framework_TestCase
 	{
 		static protected $pdo = null;   // Global connection obj
 		private $conn = null;           // Per-class connection wrapper obj
@@ -46,7 +46,7 @@
 				$tbl = (new $class)->getTableName();
 				$r = self::getPDO()->exec("drop table if exists `$tbl`");
 				if ($r === false) {
-					echo "TM_Generic_DB_TestCase error in test_tables_drop():\n";
+					echo "TM_Generic_TestCase: error in test_tables_drop():\n";
 					var_dump(self::getPDO()->errorInfo());
 				}
 			}
@@ -57,7 +57,7 @@
 			foreach ($tmtest_initial_table_creation_queries as $q) {
 				$r = self::getPDO()->exec($q);
 				if ($r === false) {
-					echo "TM_Generic_DB_TestCase error in test_tables_create():\n";
+					echo "TM_Generic_TestCase: error in test_tables_create():\n";
 					var_dump(self::getPDO()->errorInfo());
 				}
 			}
@@ -80,7 +80,7 @@
 					        'values (' . implode(', ', $values) . ')';
 					$r = self::getPDO()->exec($q);
 					if ($r === false) {
-						echo "TM_Generic_DB_TestCase error in test_tables_fill():\n";
+						echo "TM_Generic_TestCase: error in test_tables_fill():\n";
 						var_dump(self::getPDO()->errorInfo());
 					}
 				}

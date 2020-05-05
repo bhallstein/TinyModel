@@ -8,11 +8,11 @@
 	 */
 
 	require_once(__DIR__ . '/Model.php');
-	require_once(__DIR__ . '/TM_Generic_DB_TestCase.php');
+	require_once(__DIR__ . '/TM_Generic_TestCase.php');
 	require_once(__DIR__ . '/testdata/validation_test_data.php');
 
 
-	class TinyModelTest extends TM_Generic_DB_TestCase {
+	class TinyModelTest extends TM_Generic_TestCase {
 
 		protected function setUp() {
 			TinyModel::setConnection(self::getPDO());

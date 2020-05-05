@@ -1,14 +1,55 @@
 #!/bin/bash
 
-echo '<phpunit>' > phpunit.xml
-echo '  <testsuites>' >> phpunit.xml
-echo '    <testsuite name="TinyModel">' >> phpunit.xml
-echo '      <file>TinyModelTest.php</file>' >> phpunit.xml
+MYSQLCMD="mysql -u root -p"
+
+if [ $# -ge 1 ]; then
+  MYSQLCMD+="$1"
+fi
+
+# Create test DB
+echo -n "Creating test DB... "
+$MYSQLCMD -e \
+   "create database tinymodel_test \
+       default character set utf8 collate utf8_unicode_ci; \
+    grant all on tinymodel_test.* to 'tm_testuser'@'localhost' identified by 'pwd'; \
+    use tinymodel_test; \
+    create table users ( \
+       userid int unsigned not null primary key auto_increment, \
+       username varchar(20) not null, \
+       email varchar(150) not null, \
+       password varchar(32) not null, \
+       date timestamp not null default current_timestamp, \
+       favourite_int int not null, \
+       favourite_float float not null, \
+       biography tinytext not null, \
+       homepage varchar(100)
+    ); \
+    create table things ( \
+       thingid int unsigned not null primary key auto_increment, \
+       thingname varchar(24) not null \
+    ); \
+    create table favourites ( \
+       favouriteid int unsigned not null primary key auto_increment, \
+       userid int unsigned not null, \
+       thing_id int unsigned not null \
+    );"
+echo " done."
+
+
+echo '<phpunit>'                                       > phpunit.xml
+echo '  <testsuites>'                                  >> phpunit.xml
+echo '    <testsuite name="TinyModel">'                >> phpunit.xml
+echo '      <file>TinyModelTest.php</file>'            >> phpunit.xml
 echo '      <file>TinyModelDiffHelpersTest.php</file>' >> phpunit.xml
-echo '    </testsuite>' >> phpunit.xml
-echo '  </testsuites>' >> phpunit.xml
-echo '</phpunit>' >> phpunit.xml
+echo '    </testsuite>'                                >> phpunit.xml
+echo '  </testsuites>'                                 >> phpunit.xml
+echo '</phpunit>'                                      >> phpunit.xml
 
 phpunit
 
 rm phpunit.xml
+
+echo -n "Removing test DB... "
+$MYSQLCMD -e "drop database tinymodel_test"
+echo "done."
+
