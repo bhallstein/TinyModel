@@ -50,7 +50,7 @@
 			$this->definition_string = $definition_string;
 		}
 		
-		public function validate($val) {
+		public function validate($val, $recent_condition = false) {
 			if ($val === null) return !$this->rNotNull;
 			if ($this->type == 'int')	{
 				if ($this->rPositiveNumber) return is_int($val) && $val >= 0;
@@ -77,7 +77,9 @@
 				return $pass;
 			}
 			else if ($this->type == 'timestamp') {
-				return (is_string($val) && mb_ereg('^\d{2,4}.\d\d.\d\d \d\d.\d\d.\d\d$', $val));
+				return $recent_condition ?
+					is_int($val) :
+					(is_string($val) && mb_ereg('^\d{2,4}.\d\d.\d\d \d\d.\d\d.\d\d$', $val));
 			}
 			return false;
 		}
@@ -170,7 +172,7 @@
 	
 	class TinyModel {
 		
-		protected static $pdo;      // The PDO object to be used for a DB connection
+		public static $pdo;      // The PDO object to be used for a DB connection
 		static function setConnection($pdo) {
 			self::$pdo = $pdo;
 		}
@@ -337,12 +339,12 @@
 						$getErrorsForConditions($c);
 				else if ($x instanceof Condition) {
 					$class_columns = self::getTableCols();
-					$colName = $x->column;
-					$col = $class_columns[$colName];
+					$colName       = $x->column;
+					$col           = $class_columns[$colName];
 					
 					if (!isset($col))
 						$errors[$colName] = ValidationError::NonexistentColumn;
-					else if (!$col->validate($x->value))
+					else if (!$col->validate($x->value, $x->test == Condition::Recent))
 						$errors[$colName] = ValidationError::InvalidValue;
 				}
 				else
