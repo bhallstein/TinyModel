@@ -11,19 +11,21 @@
 	{
 	    static protected $pdo = null;   // Global connection obj
 	    private $conn = null;           // Per-class connection wrapper obj
-		
+
 	    final public function getConnection() {
 	        if ($this->conn === null)
 	            $this->conn = $this->createDefaultDBConnection(self::getPDO(), $GLOBALS['DB_DBNAME']);
 			return $this->conn;
 		}
-		
+
 		protected static function getPDO() {
 			if (self::$pdo === null)
 				self::$pdo = new PDO($GLOBALS['DB_DSN'], $GLOBALS['DB_USER'], $GLOBALS['DB_PASSWD']);
 			return self::$pdo;
 		}
+
+		protected function wrapAssert($method, $args, $str) {
+			echo "\n - ", $str;		// NB Output is cached by PHPUnit
+			call_user_method_array($method, $this, $args);
+		}
 	}
-	
-	
-?>

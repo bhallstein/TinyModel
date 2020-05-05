@@ -27,6 +27,7 @@ class Helpers {
 	}
 
 	public static function implcol($arr, $col, $bold, $sep = ', ') {
+		// Color an array of words, inserting separators, returning string
 		return implode(
 			$sep,
 			array_map(
@@ -141,7 +142,7 @@ class Helpers {
 	}
 
 	public static function get_SQL_description($tm_column, $name, $adding_column = false) {
-		// type: int, float, char/varchar (these are equivalent), text, timestamp
+		// type: id (-> int), int, float, char/varchar (these are equivalent), text, timestamp
 		// restrictions: alphabetical, alphanumeric, email, url, positive, notnull, maxlength=N
 		$s = "`$name`";
 
@@ -168,8 +169,8 @@ class Helpers {
 		else {
 			return null;
 		}
-		if ($tm_column->rNotNull)  $s .= ' not null';
-		else                       $s .= ' null';
+		if ($tm_column->rNotNull)  { $s .= ' not null'; }
+		else                       { $s .= ' null';     }
 
 		if ($adding_column) {
 			if ($tm_column->type == 'id')  $s .= ' primary key';

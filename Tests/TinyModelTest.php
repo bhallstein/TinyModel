@@ -7,9 +7,9 @@
 	 *
 	 */
 	
-	require('./Model.php');
-	require('./TM_Generic_DB_TestCase.php');
-	require('./validation_test_data.php');
+	require_once(__DIR__ . '/Model.php');
+	require_once(__DIR__ . '/TM_Generic_DB_TestCase.php');
+	require_once(__DIR__ . '/validation_test_data.php');
 	
 	
 	class TinyModelTest extends TM_Generic_DB_TestCase {
@@ -224,5 +224,3 @@
 			$this->wrapAssert(assertEquals, [$res, $res_exp], 'Insert validation: restriction checking (alphabetical)');
 		}
 	}
-
-?>
