@@ -20,7 +20,7 @@
 	// Define our tables
 	
 	class User extends TinyModel {
-		const userid   = 'int notnull';
+		const userid   = 'int';
 		const username = 'varchar alphanumeric maxlength=20';
 		const email    = 'varchar email maxlength=150';
 		const password = 'varchar maxlength=32';
@@ -29,12 +29,12 @@
 	}
 	
 	class Thing extends TinyModel {
-		const thingid   = 'int notnull';
+		const thingid   = 'int';
 		const thingname = 'varchar alphanumeric';
 	}
 	
 	class Favourite extends TinyModel {
-		const favouriteid = 'int notnull';
+		const favouriteid = 'int';
 		const userid      = 'int notnull';
 		const thingid     = 'int notnull';
 	}
@@ -51,7 +51,7 @@
 	$u->password = 'blah';
 	$u->salt = 'alghlks';
 	$r = $u->insert();
-	if (!$r->success) {
+	if ($r->status != TMResult::Success) {
 		echo "couldn't add '{$u->username}':\n";
 		var_dump($r);
 		exit;
@@ -65,7 +65,7 @@
 	$t = new Thing;
 	$t->thingname = "something";
 	$r = $t->insert();
-	if (!$r->success) {
+	if ($r->status != TMResult::Success) {
 		echo "couldn't add the '{$t->thingname}':\n";
 		var_dump($r);
 		exit;
@@ -81,7 +81,7 @@
 		array('thingname' => $new_name),
 		new Condition('thingid', $thing_id)
 	);
-	if (!$r->success) {
+	if ($r->status != TMResult::Success) {
 		echo "couldn't update the item:\n";
 		var_dump($r);
 		exit;
@@ -95,7 +95,7 @@
 	$f->userid = $geoff_id;
 	$f->thingid = $thing_id;
 	$r = $f->insert();
- 	if (!$r->success) {
+ 	if ($r->status != TMResult::Success) {
 		echo "couldn't add favourite:\n";
 		var_dump($r);
 	}
@@ -109,7 +109,7 @@
 		new Condition('userid', $geoff_id),
 		new Join('Favourite', 'userid', new Join('Thing', 'thingid'))
 	);
-	if (!$r->success) {
+	if ($r->status != TMResult::Success) {
 		echo "couldn't fetch geoff & his favourites:\n";
 		var_dump($r);
 	}
