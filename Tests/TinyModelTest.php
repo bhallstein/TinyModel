@@ -167,7 +167,7 @@
 				                              $passingConditions[(string) $item['class']]);
 				$this->wrapAssert(assertEquals,
 				                  [ $res, $item['res_exp'] ],
-								  'Update validation: ' . $item['description']);
+				                  'Update validation: ' . $item['description']);
 			}
 		}
 		

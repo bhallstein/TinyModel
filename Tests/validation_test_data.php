@@ -36,6 +36,12 @@
 				'field' => 'userid', value => 'hi',
 				'res_exp' => $resexp_invalidValue('userid'),
 				'class' => User,
+				'description' => 'id col, gets string'
+			],
+			[
+				'field' => 'favourite_int', value => 'hi',
+				'res_exp' => $resexp_invalidValue('favourite_int'),
+				'class' => User,
 				'description' => 'int col, gets string'
 			],
 			[
@@ -61,6 +67,12 @@
 			// Test column value restrictions
 	
 			// Positive
+			[
+				'field' => 'userid', value => -12,
+				'res_exp' => $resexp_invalidValue('userid'),
+				'class' => User,
+				'description' => 'col positive restriction (id)'
+			],
 			[
 				'field' => 'favourite_int', value => -12,
 				'res_exp' => $resexp_invalidValue('favourite_int'),

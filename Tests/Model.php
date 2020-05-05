@@ -16,7 +16,7 @@
 	class User extends TinyModel {
 		public static function describe() {
 			return [
-				'userid'          => 'int',
+				'userid'          => 'id',
 				'username'        => 'varchar alphanumeric maxlength=20 notnull',
 				'email'           => 'varchar email maxlength=150 notnull',
 				'password'        => 'varchar maxlength=32 notnull',
@@ -32,7 +32,7 @@
 	class Thing extends TinyModel {
 		public static function describe() {
 			return [
-				'thingid'   => 'int',
+				'thingid'   => 'id',
 				'thingname' => 'varchar alphabetical maxlength=24 notnull',
 			];
 		}
@@ -42,7 +42,7 @@
 	class Favourite extends TinyModel {
 		public static function describe() {
 			return [
-				'favouriteid' => 'int',
+				'favouriteid' => 'id',
 				'userid'      => 'int notnull',
 				'thing_id'    => 'int notnull',
 			];

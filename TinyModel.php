@@ -31,10 +31,6 @@
 	class Column {
 		
 		public function __construct($definition_string) {
-			// Process definition string and set Column properties
-			$this->type = strtok($definition_string, ' ');
-			if ($this->type == 'char') $this->type = 'varchar';
-			
 			$this->rAlphabetical   = false;
 			$this->rAlphanumeric   = false;
 			$this->rEmail          = false;
@@ -42,6 +38,14 @@
 			$this->rPositiveNumber = false;
 			$this->rNotNull        = false;
 			$this->maxLength       = false;
+			
+			// Process definition string and set properties
+			if (substr($definition_string, 0, 2) == 'id') {
+				$this->type = 'id';
+			}
+			
+			$this->type = strtok($definition_string, ' ');
+			if ($this->type == 'char') $this->type = 'varchar';
 			
 			while (($attrib = strtok(' ')) !== false) {
 				if ($attrib == 'alphabetical')      $this->rAlphabetical = true;
@@ -60,7 +64,10 @@
 		
 		public function validate($val, $recent_condition = false) {
 			if ($val === null) return !$this->rNotNull;
-			if ($this->type == 'int')	{
+			if ($this->type == 'id') {
+				return is_int($val) && $val >= 0;
+			}
+			else if ($this->type == 'int')	{
 				if ($this->rPositiveNumber) return is_int($val) && $val >= 0;
 				return is_int($val);
 			}
@@ -314,19 +321,21 @@
 			foreach ($fields as $columnName => $value) {
 				$col = isset($class_columns[$columnName]) ? $class_columns[$columnName] : null;
 
-				if (!isset($col))
+				if (!isset($col)) {
 					$errors[$columnName] = ValidationError::NonexistentColumn;
-				
+				}
 				else {
-					$validated = $col->validate($value);
-					if (!$validated)
+					if ($col->type == 'id') $validated = is_null($value);
+					else                    $validated = $col->validate($value);
+					if (!$validated) {
 						$errors[$columnName] = ValidationError::InvalidValue;
+					}
 				}
 			}
 			
 			if ($check_completeness) {
 				foreach ($class_columns as $columnName => $col) {
-					if ($col->rNotNull && !isset($fields[$columnName]))
+					if ($col->type != 'id' && $col->rNotNull && !isset($fields[$columnName]))
 						$errors[$columnName] = ValidationError::InvalidValue;
 				}
 			}
