@@ -219,10 +219,10 @@
 		protected static function plural($s) {
 			$c = substr($s, -1);
 			$c2 = substr($s, -2, -1);
-			$c2_vowel = preg_match('/[aeiou]+/', $c2);
-			if ($c == 'y' && !$c2_vowel)
+			$c2_is_vowel = (strpos('aeiou', $c2) !== false);
+			if ($c == 'y' && !$c2_is_vowel)
 				return substr($s, 0, -1) . 'ies';
-			else if (($c == 's' && $c2_vowel) || $c == 'h')
+			else if (($c == 's' && $c2_is_vowel) || $c == 'h')
 				return $s . 'es';
 			return $s . 's';
 		}
