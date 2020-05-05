@@ -25,6 +25,12 @@
 		}
 	}
 
+	function ech() {
+		if (!Helpers::get_option('--silent')) {
+			foreach (func_get_args() as $a)
+				echo $a;
+		}
+	}
 	function p($x) {
 		Helpers::p(json_encode($x, JSON_PRETTY_PRINT), "\n\n");
 	}
@@ -209,50 +215,55 @@
 		return;
 	}
 
-	// echo "Diff:\n";
+	// ech("Diff:\n");
 	// p($diff);
 
 	$warnings = print_diff_and_get_warnings($diff);
 	if ($dangerous_modifs_present = (max($warnings) > 0)) {
-		echo Helpers::clr("\nWARNING:\n", 'red', true);
-		echo "Proceeding from here will";
+		ech(Helpers::clr("\nWARNING:\n", 'red', true));
+		ech("Proceeding from here will");
 		$r_tbl = $warnings['tables_removed'] > 0;
 		$r_col = $warnings['columns_removed'] > 0;
 		$m_col = $warnings['columns_modified'] > 0;
 		if ($r_tbl || $r_col) {
-			echo " destroy";
+			ech(" destroy");
 			if ($r_tbl) {
-				echo " {$warnings['tables_removed']} tables";
-				if ($r_col) echo ', and';
+				ech(" {$warnings['tables_removed']} tables");
+				if ($r_col) ech(', and');
 			}
 			if ($r_col) {
-				echo " {$warnings['columns_removed']}";
-				echo ' columns';
-				if ($r_tbl) echo ' in other tables';
+				ech(" {$warnings['columns_removed']}");
+				ech(' columns');
+				if ($r_tbl) ech(' in other tables');
 			}
-			if ($m_col) echo ", and";
+			if ($m_col) ech(", and");
 		}
 		if ($m_col) {
-			echo " modify {$warnings['columns_modified']}";
-			if ($r_col) echo ' further';
-			echo ' columns, perhaps destructively';
+			ech(" modify {$warnings['columns_modified']}");
+			if ($r_col) ech(' further');
+			ech(' columns, perhaps destructively');
 		}
-		echo ".\n";
+		ech(".\n");
 
-		echo "\nAre you sure you wish to continue? ";
-		$response = readline();
-		if (substr($response, 0, 1) != 'y') {
-			echo "OK, bye.\n\n";
-			exit;
+		$should_prompt = !(
+			Helpers::get_option('--do-not-prompt-when-destroying-data') ||
+			Helpers::get_option('--silent')
+		);
+		if ($should_prompt) {
+			ech("\nAre you sure you wish to continue? ");
+			$response = readline();
+			if (substr($response, 0, 1) != 'y') {
+				ech("OK, bye.\n\n");
+				exit;
+			}
+			ech(Helpers::clr('Really sure? ', 'normal', true));
+			$response = readline();
+			if (substr($response, 0, 1) != 'y') {
+				ech("OK, bye.\n\n");
+				exit;
+			}
+			ech("OK, applying changes... ");
 		}
-		echo Helpers::clr('Really sure? ', 'normal', true);
-		$response = readline();
-		if (substr($response, 0, 1) != 'y') {
-			echo "OK, bye.\n\n";
-			exit;
-		}
-
-		echo "OK, applying changes... ";
 	}
 
 
@@ -303,36 +314,23 @@
 
 		foreach ($statements as $q) {
 			$st = $pdo->prepare($q);
-			echo $q, "\n";
+			ech($q, "\n");
 			$r = $st->execute();
 			if (!$r) {
-				echo Helpers::clr("Error: ", 'red', true), "Couldn't execute the following SQL statement:\n";
-				echo "  ", $q, "\n";
-				echo "\nKeep going? "; $response = readline();
+				ech(Helpers::clr("Error: ", 'red', true), "Couldn't execute the following SQL statement:\n");
+				ech('  ', $q, "\n");
+				ech("\nKeep going? "); $response = readline();
 				if (substr($response, 0, 1) != 'y') {
-					echo "OK, bye.\n\n";
+					ech("OK, bye.\n\n");
 					exit;
 				}
 			}
 		}
 	}
-	echo "\n";
+	ech("\n");
 	apply_diff($diff, Tinymodel::$pdo);
 
 
+	// Options: --do-not-prompt-when-destroying-data
+	//          --silent     (implies --do-not-prompt)
 
-	// 1. Get filename - if not supplied, error
-	// 2. Include file - if error, exit
-
-	// Options: -s: silent - no output, implies -f
-	//          -f: no prompt - perform the operation without prompting for confirmation
-
-	// if (count($argv) < 2) {
-	// 	exit("Usage: Tinymodel.php path/to/model_file");
-	// }
-	// $fn_model = $argv[1];
-	// $success = include($fn_model);
-	//
-	// if (!$success) {
-	// 	exit("Error: invalid model file ($fn_model)");
-	// }

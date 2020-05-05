@@ -183,6 +183,9 @@ class Helpers {
 	}
 
 	public static function p() {
+		if (self::get_option('--silent')) {
+			return;
+		}
 		$s = func_get_args();
 		$last = array_pop($s);
 		$suppress_newline = false;
@@ -219,5 +222,13 @@ class Helpers {
 			$sp();
 			echo $s, "\n";
 		}
+	}
+
+	public static function get_option($opt) {
+		global $argv;
+		for ($i=2; $i < count($argv); ++$i)
+			if ($argv[$i] == $opt)
+				return true;
+		return false;
 	}
 }
