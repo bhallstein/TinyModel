@@ -36,7 +36,6 @@
 				'thingname' => 'varchar alphabetical maxlength=24 notnull',
 			];
 		}
-
 	}
 	
 	class Favourite extends TinyModel {

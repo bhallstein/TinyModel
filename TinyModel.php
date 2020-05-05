@@ -659,9 +659,10 @@
 
 	// Database diffing - runs if invoked from cmd line
 	
-	if (PHP_SAPI == 'cli' && count($argv) > 1 && $argv[1] == 'diff') {
+	if (PHP_SAPI == 'cli' && count($argv) > 1 && $argv[1] == 'apply') {
 		function do_diff() {
 			require_once(__DIR__ . '/Diff/diff.php');
+			echo "\n";
 		}
 		register_shutdown_function('do_diff');
 	}

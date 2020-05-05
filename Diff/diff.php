@@ -9,8 +9,8 @@
 	require_once(__DIR__ . '/helpers.php');
 
 	if (!TinyModel::$pdo) {
-		echo clr('Error:', 'red', true),  " TinyModel::$pdo is null\n";
-		exit;
+		Helpers::p(clr('Error:', 'red', true),  " TinyModel::$pdo is null\n");
+		return;
 	}
 
 	class TMDiff {
@@ -26,7 +26,7 @@
 	}
 
 	function p($x) {
-		echo json_encode($x, JSON_PRETTY_PRINT), "\n\n";
+		Helpers::p(json_encode($x, JSON_PRETTY_PRINT), "\n\n");
 	}
 
 	$diff = new TMDiff;
@@ -153,43 +153,47 @@
 			'columns_modified' => 0,
 		];
 
-		echo Helpers::clr("Results:\n", 'normal', true);
+		Helpers::p(Helpers::clr("Results:", 'normal', true));
+		Helpers::p('--------------------------------------------------------');
 		if (count($diff->tables_for_removal) > 0) {
-			echo " - Tables to be ", Helpers::clr('removed', 'red',   true), ":  ";
-			echo implode(', ', $diff->tables_for_removal), "\n";
+			Helpers::p("Tables to be removed: ");
+			foreach ($diff->tables_for_removal as $t)
+				Helpers::p('  - ', Helpers::clr($t, 'red', true));
 		}
 		if (count($diff->classes_for_addition) > 0) {
-			echo " - Tables to be ", Helpers::clr('created', 'green', true), ":  ";
 			$tblnames = array_map(
 				function($cla) { return $cla::getTableName(); },
 				$diff->classes_for_addition
 			);
-			echo implode(', ', $tblnames), "\n";
+			Helpers::p('Tables to be created:');
+			foreach ($tblnames as $t) Helpers::p('  - ', Helpers::clr($t, 'green', true));
 		}
 		if (is_array($diff->table_alterations) && count($diff->table_alterations) > 0) {
-			echo " - Tables requiring alterations:\n";
+			Helpers::p('Tables requiring alterations:');
 
 			foreach ($diff->table_alterations as $cla => $details) {
 				$t = $cla::getTableName();
-				echo "    - $t:\n";
+				Helpers::p('  - ', Helpers::clr($t, 'normal', true), ':');
 
 				if (isset($details['remove_cols']) && count($details['remove_cols']) > 0) {
 					$warnings['columns_removed'] += count($details['remove_cols']);
-					echo "        columns to remove: ", Helpers::implcol($details['remove_cols'], 'red', true), "\n";
+					Helpers::p("      columns to remove: ", Helpers::implcol($details['remove_cols'], 'red', true));
 				}
 				if (isset($details['add_cols']) && count($details['add_cols']) > 0)
-				echo "        columns to create: ", Helpers::implcol($details['add_cols'], 'green', true), "\n";
+					Helpers::p("      columns to create: ", Helpers::implcol($details['add_cols'], 'green', true));
 
 				if (isset($details['modify_cols']) && count($details['modify_cols']) > 0) {
 					$warnings['columns_modified'] += count($details['modify_cols']);
-					echo "        columns to modify:\n";
+					Helpers::p("      columns to modify:");
 					$pad_length = max(array_map(function($x) { return mb_strlen($x); }, array_keys($details['modify_cols'])));
 					foreach ($details['modify_cols'] as $colname => $mdfcn) {
-						echo "           ", str_repeat(' ', $pad_length - mb_strlen($colname)); echo Helpers::clr($colname, 'yellow', true), "  ";
-						echo Helpers::get_modification_expln($mdfcn), "\n";
+						Helpers::p("         ", str_repeat(' ', $pad_length - mb_strlen($colname)),
+								     Helpers::clr($colname, 'yellow', true), "  ",
+									  Helpers::get_modification_expln($mdfcn));
 					}
 				}
 			}
+			Helpers::p('--------------------------------------------------------');
 		}
 
 		return $warnings;
@@ -201,8 +205,8 @@
 		count($diff->table_alterations) > 0
 	);
 	if (!$modifs_present) {
-		echo Helpers::clr('Nothing to do!', 'green', true), "\n";
-		exit;
+		Helpers::p(Helpers::clr('Nothing to do!', 'green', true), "\n");
+		return;
 	}
 
 	// echo "Diff:\n";
@@ -212,13 +216,27 @@
 	if ($dangerous_modifs_present = (max($warnings) > 0)) {
 		echo Helpers::clr("\nWARNING:\n", 'red', true);
 		echo "Proceeding from here will";
-		if ($warnings['tables_removed'] > 0 && $warnings['columns_removed'] > 0) {
-			echo " destroy {$warnings['tables_removed']} tables and {$warnings['columns_removed']} further columns";
-			if ($warnings['columns_modified'] > 0)
-				echo ", and";
+		$r_tbl = $warnings['tables_removed'] > 0;
+		$r_col = $warnings['columns_removed'] > 0;
+		$m_col = $warnings['columns_modified'] > 0;
+		if ($r_tbl || $r_col) {
+			echo " destroy";
+			if ($r_tbl) {
+				echo " {$warnings['tables_removed']} tables";
+				if ($r_col) echo ', and';
+			}
+			if ($r_col) {
+				echo " {$warnings['columns_removed']}";
+				echo ' columns';
+				if ($r_tbl) echo ' in other tables';
+			}
+			if ($m_col) echo ", and";
 		}
-		if ($warnings['columns_modified'] > 0)
-			echo " modify {$warnings['columns_modified']} columns, perhaps destructively";
+		if ($m_col) {
+			echo " modify {$warnings['columns_modified']}";
+			if ($r_col) echo ' further';
+			echo ' columns, perhaps destructively';
+		}
 		echo ".\n";
 
 		echo "\nAre you sure you wish to continue? ";

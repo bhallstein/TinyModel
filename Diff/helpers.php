@@ -17,26 +17,6 @@ class Helpers {
 		return (int) $matches[1];
 	}
 
-	public static function clr($str, $col, $bold = false) {
-		static $colcodes = [
-			'red'    => ';31',    'green'  => ';32',
-			'yellow' => ';33',    'blue'   => ';34',
-			'normal' => ''
-		];
-		return "\033[" . ($bold ? '1' : '0') . $colcodes[$col] . 'm' . $str . "\033[0m";
-	}
-
-	public static function implcol($arr, $col, $bold, $sep = ', ') {
-		// Color an array of words, inserting separators, returning string
-		return implode(
-			$sep,
-			array_map(
-				function($s) use ($col, $bold) { return self::clr($s, $col, $bold); },
-				$arr
-			)
-		);
-	}
-
 	public static function get_modification_expln($m) {
 		$out = [ ];
 		if (isset($m['type'])) {
@@ -177,5 +157,67 @@ class Helpers {
 		}
 
 		return $s;
+	}
+
+
+	// Command-line output
+
+	public static function clr($str, $col, $bold = false) {
+		static $colcodes = [
+			'red'    => ';31',    'green'  => ';32',
+			'yellow' => ';33',    'blue'   => ';34',
+			'normal' => ''
+		];
+		return "\033[" . ($bold ? '1' : '0') . $colcodes[$col] . 'm' . $str . "\033[0m";
+	}
+
+	public static function implcol($arr, $col, $bold, $sep = ', ') {
+		// Color an array of words, inserting separators, returning string
+		return implode(
+			$sep,
+			array_map(
+				function($s) use ($col, $bold) { return self::clr($s, $col, $bold); },
+				$arr
+			)
+		);
+	}
+
+	public static function p() {
+		$s = func_get_args();
+		$last = array_pop($s);
+		$suppress_newline = false;
+		if (is_bool($last)) {  $suppress_newline = true;  }
+		else                {  $s []= $last; }
+		$s = implode('', $s);
+		$s = explode("\n", $s);
+		foreach ($s as $l) self::echo_line($l);
+	}
+
+	private static $p = -1;
+	private static function echo_line($s) {
+		$h_padding = 4;
+		$sp = function() use ($h_padding) {
+			$n = strlen('--------------------') + $h_padding;
+			for ($i = 0; $i < $n; ++$i) echo ' ';
+		};
+		if (self::$p == -1) {
+			echo '--------------------', "\n",
+			     self::clr('TinyModel', 'blue', true), ' / ',
+			     Helpers::clr('DB diff', 'normal', true),  ":";
+			for ($i = 0; $i < $h_padding; ++$i) echo ' ';
+			echo $s, "\n";
+			// echo '                    ';
+			echo '--------------------';
+			for ($i = 0; $i < $h_padding; ++$i) echo ' ';
+			self::$p = 0;
+		}
+		else if (self::$p == 0) {
+			echo $s, "\n";
+			self::$p = 1;
+		}
+		else {
+			$sp();
+			echo $s, "\n";
+		}
 	}
 }
