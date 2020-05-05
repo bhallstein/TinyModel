@@ -1,8 +1,21 @@
 <?
 	require_once('TinyModel.php');
-	mysql_connect('127.0.0.1', 'testuser', 'testpass');
-	mysql_select_db('testdb');
-	mysql_query('set names "utf8"');
+
+	// Create connection
+	
+	try {
+		$conn = new PDO(
+			'mysql:host=127.0.0.1;dbname=testdb;charset=utf8',
+			'testuser',
+			'testpass'
+		);
+	}
+	catch (PDOException $e) {
+		echo 'Error connecting to the database';
+		exit;
+	}
+	TinyModel::setConnection($conn);
+	
 	
 	// Define our tables
 	
@@ -30,60 +43,50 @@
 	echo '<pre>';
 	
 	
-	// Insert a user
+	// Insert a user, Geoff
 	
 	$u = new User;
-	$u->username = 'geoff';
+	$u->username = 'mrgeoff';
 	$u->email = 'something@somewhere.com';
 	$u->password = 'blah';
 	$u->salt = 'alghlks';
 	$r = $u->insert();
-	if ($r === false)
-		echo "coudn't add geoff!";
-	else if (is_array($r)) {
-		echo "invalid input adding user: ";
-		print_r($r);
+	if (!$r->success) {
+		echo "couldn't add '{$u->username}':\n";
+		var_dump($r);
+		exit;
 	}
-	else {
-		$geoff_id = $r;
-		echo "geoff was inserted with id ", $r;
-	}
-	echo "\n";
+	$geoff_id = $r->result;
+	echo "- '{$u->username}' was inserted with id $geoff_id\n";
 	
 	
 	// Insert a thing for Geoff to enjoy
 	
 	$t = new Thing;
-	$t->thingname = "squishy";
+	$t->thingname = "something";
 	$r = $t->insert();
-	if ($r === false)
-		echo "couldn't add a squishy";
-	else if (is_array($r)) {
-		echo "invalid input adding thing:\n";
-		print_r($r);
+	if (!$r->success) {
+		echo "couldn't add the '{$t->thingname}':\n";
+		var_dump($r);
+		exit;
 	}
-	else {
-		$thing_id = $r;
-		echo "added thing with id ", $thing_id;
-	}
-	echo "\n";
+	$thing_id = $r->result;
+	echo "- added thing '{$t->thingname}' with id $thing_id\n";
 	
 	
 	// Update the object's name
+	
+	$new_name = 'tshirt';
 	$r = Thing::update(
-		array('thingname' => "tshirt"),
+		array('thingname' => $new_name),
 		new Condition('thingid', $thing_id)
 	);
-	if ($r === false)
-		echo "couldn't update the squishy";
-	else if (is_array($r)) {
-		echo "invalid input updating the squishy:\n";
-		print_r($r);
+	if (!$r->success) {
+		echo "couldn't update the item:\n";
+		var_dump($r);
+		exit;
 	}
-	else {
-		echo "updated ", $r, ' item' . ($r == 1 ? '' : 's') . " in 'things' table to have name 't-shirt'";
-	}
-	echo "\n";
+	echo "- updated ", $r->result, ' item' . ($r->result == 1 ? '' : 's') . " in 'things' table to have name '$new_name'\n";
 	
 	
 	// Geoff favourites the object
@@ -92,17 +95,12 @@
 	$f->userid = $geoff_id;
 	$f->thingid = $thing_id;
 	$r = $f->insert();
- 	if ($r === false)
-		echo "couldn't add favourite";
-	else if (is_array($r)) {
-		echo "invalid input adding favourite:\n";
-		print_r($r);
+ 	if (!$r->success) {
+		echo "couldn't add favourite:\n";
+		var_dump($r);
 	}
-	else {
-		$fav_id = $r;
-		echo "added favourite with id $fav_id";
-	}
-	echo "\n";
+	$fav_id = $r->result;
+	echo "- added favourite with id $fav_id\n";
 	
 	
 	// Fetch the user
@@ -111,15 +109,16 @@
 		new Condition('userid', $geoff_id),
 		new Join('Favourite', 'userid', new Join('Thing', 'thingid'))
 	);
-	if (!is_array($r))
-		echo "TinyModel::fetch() returned false\n";
-	else {
-		echo "got Geoff, and geoff's favourites table, and the things themselves:\n";
-		print_r($r);
-		$geoff_faves = $r[0]->favourites;
-		$things = $geoff_faves[0]->things;
-		echo "Name of first favourited object: ", $things[0]->thingname;
+	if (!$r->success) {
+		echo "couldn't fetch geoff & his favourites:\n";
+		var_dump($r);
 	}
+	echo "- got geoff, and geoff's favourites table, and the things themselves:\n";
+	print_r($r->result);
+	$geoff_faves = $r->result[0]->favourites;
+	$things = $geoff_faves[0]->things;
+	echo "- Name of first favourited object: ", $things[0]->thingname;
+	echo ":) \n";
 	
 	echo '</pre>';
 ?>

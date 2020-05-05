@@ -79,18 +79,26 @@
 	
 	
 	class Join {
-		public function __construct($cl, $co, $j = array()) {
+		public function __construct($cl, $co, $j = [ ]) {
 			$this->class = $cl;
-			$this->cols  = is_array($co) ? $co : array($co);
-			$this->joins = is_array($j) ? $j : array($j);
+			$this->cols  = (is_array($co) ? $co : [$co]);
+			$this->joins = (is_array($j) ? $j : [$j]);
 		}
 	}
 	
 	
+	class ValidationError {
+		const NonexistentColumn = 0;
+		const InvalidValue      = 4;
+		const UnknownObject     = 8;
+		private function __construct() { }
+	}
+	
+	
 	class Condition {
-		private $column;
-		private $test;
-		private $value;
+		public $column;
+		public $test;
+		public $value;
  		public $conjunction;
 		
 		private static $testStrings;
@@ -110,46 +118,64 @@
 			$this->column = $col;
 			$this->value = $val;
 			$this->test = $test;
-			$this->conjunction = ($conjunction == self::_And ? 'and' : 'or');
+			$this->conjunction = $conjunction;
 		}
 		
-		public function toStr($prefix = '') {
-			// Return the condition as a string
-			if ($prefix !== '') $prefix .= '.';
-			
-			if ($this->test == self::Recent) {
-				// recency period is stored in `value`
-				$s = 'unix_timestamp(now()) - unix_timestamp(' .
-						mysql_real_escape_string($this->column) . ') < ' . (int)$this->value;
-			}
-			else {
-				$s = $prefix . mysql_real_escape_string($this->column) .
-					' ' . self::$testStrings[$this->test] . ' ' .
-					(
-						(is_int($this->val) or is_float($this->val)) ? $this->val :
-						("'" . mysql_real_escape_string($this->value) . "'")
-					);
-			}
-			
-			return $s;
+		public function testString() {
+			$t = self::$testStrings[$this->test];
+			return (isset($t) ? $t : '=');
+		}
+		
+		public function conjString() {
+			return ($this->conjunction == self::_And ? 'and' : 'or');
 		}
 		
 		public static function _init() {
-			self::$testStrings = array(
+			self::$testStrings = [
 				self::Equals              => '=',
 				self::NotEquals           => '!=',
 				self::LessThan            => '<',
 				self::LessThanOrEquals    => '<=',
 				self::GreaterThan         => '>',
 				self::GreaterThanOrEquals => '>='
-			);
+			];
 		}
 	}
 	Condition::_init();
 	
 	
+	class TMResult {
+		public $success;
+		public $result;
+		
+		public $error;
+		public $errors;
+		
+		public function __construct($success, $error = NoError) {
+			$this->success = $success;
+			$this->error = $error;
+		}
+		
+		const NoError = 0;
+		const InvalidData = 1;
+		const InvalidConditions = 2;
+		const InternalError = 3;
+		
+	}
+	
 	
 	class TinyModel {
+		
+		protected static $pdo;      // The PDO object to be used for a DB connection
+		static function setConnection($pdo) {
+			self::$pdo = $pdo;
+		}
+		
+		protected static $bind_params;				// When building a prepared statement, we store params in here
+		protected function bindBindParams($st) {	// :P
+			for ($i = 0, $n = count(self::$bind_params); $i < $n; ++$i)
+				$st->bindParam($i+1, self::$bind_params[$i]);
+		}
 		
 		private static $tableNames;		// Array of names of subclass tables: {'User' => 'users'}
 		private static $tableCols;		// Table columns {'User' => A}
@@ -160,25 +186,25 @@
 		// Table names and columns must be accessed using the getters, which perform reflection,
 		// returning the name/columns appropriate to the calling subclass (!)
 		
-		static function &getTableCols() {
+		protected static function &getTableCols() {
 			if (self::$tableCols === null)
-				self::$tableCols = array();
+				self::$tableCols = [ ];
 			if (self::$tableCols[$subclass_name = get_called_class()] === null) {
 				// Get the column definitions from the user subclass
 				$rc = new ReflectionClass($subclass_name);
 				$columns = $rc->getConstants();			// -> {constant_name => constant_value}
 				
 				// Create static array of Column objects
-				self::$tableCols[$subclass_name] = array();
+				self::$tableCols[$subclass_name] = [ ];
 				foreach ($columns as $col_name => $col_definition_string) {
 					self::$tableCols[$subclass_name][$col_name] = new Column($col_definition_string);
 				}
 			}
 			return self::$tableCols[$subclass_name];
 		}
-	  	static function &getTableName() {
+	  	protected static function &getTableName() {
 			if (self::$tableNames === null)
-				self::$tableNames = array();
+				self::$tableNames = [ ];
 			if (self::$tableNames[$subclass_name = get_called_class()] === null) {
 				$class = strtolower($subclass_name);
 				$c = substr($class, -1);
@@ -197,9 +223,9 @@
 		//  - take a row of a table containing one of this class:
 		//    - the row has a prefix, e.g. a_users
 		//    - for each column defined by this class, attempt to fetch it from row
-		//    - return an object or null if nothing found
+		//    - return an object, or null if nothing found
 		
-		static function objFromRow($row, $prefix) {
+		protected static function objFromRow($row, $prefix) {
 			$cols = array_keys(self::getTableCols());
 			$new_obj = new static();
 			$n_imported_columns = 0;
@@ -218,34 +244,41 @@
 		//    - a Condition object
 		//    - a (nested) array of Condition objects
 		
-		static function conditionStr($c, $prefix = '') {
-			$s = '';
+		protected static function getSingleCondStr_AndAddBindParam($c, $prefix) {
+			// Return the condition as a string
+			if ($prefix !== '') $prefix .= '.';
 			
-			if ($c instanceof Condition) {
-				$s .= 'where ';
-				$s .= $c->toStr($prefix);
-			}
-			
-			else if (is_array($c) && count($c)) {
-				// Iterate recursively over the array of conditions
-				$getConditionStringForArray = function($a) use(&$getConditionStringForArray, $prefix) {
-					$conjunction = null;
-					$s = '';
-					foreach ($a as $c) {
-						if ($conjunction) $s .= $conjunction . ' ';
-						if (is_array($c))
-							$s .= '(' . $getConditionStringForArray($c) . ') ';
-						else if ($c instanceof Condition) {
-							$s .= $c->toStr($prefix) . ' ';
-							$conjunction = $c->conjunction;
-						}
-					}
-					return $s;
-				};
-				$s .= 'where ' . $getConditionStringForArray($c);
-			}
+			if ($c->test == Condition::Recent)
+				$s = "unix_timestamp(now()) - unix_timestamp({$prefix}{$c->column}) < ?";
+			else
+				$s = "{$prefix}{$c->column} {$c->testString()} ?";
+			self::$bind_params []= $c->value;
 			
 			return $s;
+		}
+		
+		protected static function getCondStr_AndAddBindParams($c, $prefix = '') {
+			// Iterate recursively over the array of conditions
+			$getStringForConditions = function($x) use(&$getStringForConditions, $prefix) {
+				$s = '';
+				$conj = null;
+				if (is_array($x)) {
+					$s .= '(';
+					foreach ($x as $y) {
+						if ($conj) $s .= "$conj ";
+						$s .= $getStringForConditions($y);
+						if ($y instanceof Condition) $conj = $y->conjunction;
+					}
+					$s .= ')';
+				}
+				else if ($x instanceof Condition) {
+					$s = self::getSingleCondStr_AndAddBindParam($x, $prefix);
+				}
+				return $s;
+			};
+			$s .= $getStringForConditions($c);
+			
+			return 'where ' . $s;
 		}
 		
 		
@@ -254,38 +287,59 @@
 		//  - check that the supplied columns exist, and the values pass validation
 		//  - returns an array of errors: {column_name => error}, ...
 		
-		static function validate(&$fields) {
-			$class_columns = &self::getTableCols();
-			$errors = array();
+		protected static function validateArray(&$fields) {
+			$class_columns = self::getTableCols();		// [ column_name => Column ]
+			$errors = [ ];
 			
-			foreach($fields as $columnName => $value) {
+			foreach ($fields as $columnName => $value) {
 				$col = $class_columns[$columnName];
 				
 				if (!isset($col))
-					$errors[$columnName] = 'Unknown column name';
-					
-				else if ($value == null)
-					$errors[$columnName] = 'Null value supplied';
+					$errors[$columnName] = ValidationError::NonexistentColumn;
 				
 				else {
 					$validated = $col->validate($value);
 					if (!$validated)
-						$errors[$columnName] = 'Illegal ' . gettype($value) . ' value \'' . $value .
-							'\' (column definition: ' . $col->definition_string . ')';
+						$errors[$columnName] = ValidationError::InvalidValue;
 				}
 			}
 			
 			return $errors;
 		}
 		
-		private function wouldDifferFromRow(&$row, $prefix) {
-			$id_column = array_shift(array_keys(self::getTableCols()));
+		
+		protected static function validateConditions(&$c) {
+			$errors = [ ];
+			$getErrorsForConditions = function(&$x) use(&$getErrorsForConditions, &$errors) {
+				if (is_array($x))
+					foreach ($x as $c)
+						$getErrorsForConditions($c);
+				else if ($x instanceof Condition) {
+					$class_columns = self::getTableCols();
+					$colName = $x->column;
+					$col = $class_columns[$colName];
+					
+					if (!isset($col))
+						$errors[$colName] = ValidationError::NonexistentColumn;
+					else if (!$col->validate($x->value))
+						$errors[$colName] = ValidationError::InvalidValue;
+				}
+				else
+					$errors []= ValidationError::UnknownObject;
+			};
+			
+			$getErrorsForConditions($c);
+			return $errors;
+		}
+		
+		protected function wouldDifferFromRow(&$row, $prefix) {
+			$id_column = array_shift(array_keys(self::getTableCols()));	// This is a rather brittle assumption.
 			return $row["{$prefix}_{$id_column}"] != $this->$id_column;
 		}
 		
-		function appendToArray($arrname, $val) {
+		protected function appendToArray($arrname, $val) {
 			if (!isset($this->$arrname) or !is_array($this->$arrname))
-				$this->$arrname = array();
+				$this->$arrname = [ ];
 			array_push($this->$arrname, $val);
 		}
 		
@@ -293,40 +347,48 @@
 		// Fetch: fetch rows from the table, using the given conditions & joins
 		//  - returns:
 		//    - false on db error
-		//    - an array reresenting the returned object(s) on success
+		//    - a nested array of object(s) on success
 		
-		static function fetch($conditions = array(), $joins = array(), $debug = false) {
+		static function fetch($conditions = [ ], $joins = [ ], $debug = false) {
+			self::$bind_params = [ ];
 			$table = &self::getTableName();
 			$cols  = &self::getTableCols();
+			
+			$errors = self::validateConditions($conditions);
+			if (count($errors)) {
+				$res = new TMResult(false, TMResult::InvalidConditions);
+				$res->errors = $errors;
+				return $res;
+			}
 			
 			foreach($cols as $colname => $col) {
 				$s = $col->type == 'timestamp' ? "unix_timestamp(a.$colname)" : "a.$colname";
 				$q []= "$s as a_{$colname}";
 			}
-			$query_select_columns = array( implode(', ', $q) );
+			$query_select_columns = [ implode(', ', $q) ];
 			
-			$query_from_tables = array();
-			$query_joins       = array();
+			$query_from_tables = [ ];
+			$query_joins       = [ ];
 			$i = 0;
 			
 			$add_join = function(&$join, &$parent = null) use (&$i, &$query_select_columns, &$query_joins, &$add_join) {
-				$join->prefix = $prefix = chr($i++ + 98);
+				$join->prefix = $prefix = chr(98 + $i++);
 				$join->parent = $parent;
 				$join->stalled = false;
-				$parent_prefix = $parent ? $parent->prefix : 'a';
+				$parent_prefix = ($parent ? $parent->prefix : 'a');
 				
 				$cla = $join->class;
 				$table = &$cla::getTableName();
 				$cols  = &$cla::getTableCols();
 				
-				$q = array();
+				$q = [ ];
 				foreach ($cols as $colname => $col) {
-					$s = $col->type == 'timestamp' ? "unix_timestamp($prefix.$colname)" : "$prefix.$colname";
+					$s = ($col->type == 'timestamp' ? "unix_timestamp($prefix.$colname)" : "$prefix.$colname");
 					$q []= "$s as {$prefix}_{$colname}";
 				}
 				$query_select_columns []= implode(', ', $q);
 				
-				$join_conditions = array();
+				$join_conditions = [ ];
 				foreach ($join->cols as $k => $v) {
 					if (is_string($k)) $join_conditions []= "$parent_prefix.$k = $prefix.$v";
 					else               $join_conditions []= "$parent_prefix.$v = $prefix.$v";
@@ -334,36 +396,36 @@
 				$query_joins []= "left join $table as $prefix on " . implode(' and ', $join_conditions);
 				
 				foreach($join->joins as $k => &$j) {
-					if (! $j instanceof Join)
-						unset($join->joins[$k]);
-					else
-						$add_join($j, $join);
+					if (!($j instanceof Join)) unset($join->joins[$k]);
+					else                       $add_join($j, $join);
 				}
 			};
 			
-			if (!is_array($joins))
-				$joins = array($joins);
+			if (!is_array($joins)) $joins = [ $joins ];
 			foreach($joins as $k => &$j) {
-				if (! $j instanceof Join)
-					unset($joins[$k]);
-				else
-					$add_join($j);
+				if (!($j instanceof Join)) unset($joins[$k]);
+				else                       $add_join($j);
 			}
 				
 			$query_select_columns = implode(', ', $query_select_columns);
 			$query_joins = implode(' ', $query_joins);
 			
-			$cond = self::conditionStr($conditions, 'a');
-			if ($cond === '') return false;
+			$cond = self::getCondStr_AndAddBindParams($conditions, 'a');
 			
 			$q = "select $query_select_columns from $table as a $query_joins $cond";
 			if ($debug) var_dump($q);
-			$r = mysql_query($q);
-			if (!$r) return false;
-
-			$base_objs = array();
-			$increments_from_stalled_joins = array();
-			$row = mysql_fetch_assoc($r);
+			$st = self::$pdo->prepare($q);
+			
+			self::bindBindParams($st);
+			
+			$r = $st->execute();
+			if ($r === false) {
+				$res = new TMResult(false, TMResult::InternalError);
+				return $res;
+			}
+			
+			$base_objs = [ ];
+			$increments_from_stalled_joins = [ ];
 			
 			$destall = function(&$join) use (&$increments_from_stalled_joins, &$destall) {
 				foreach($join->joins as &$_j)
@@ -406,6 +468,7 @@
 				}
 			};
 			
+			$row = $st->fetch(PDO::FETCH_ASSOC);
 			while ($row) {
 				$n = count($base_objs);
 				if (!$n or $base_objs[$n - 1]->wouldDifferFromRow($row, 'a')) {
@@ -422,11 +485,13 @@
 				$inc = 1;
 				foreach($increments_from_stalled_joins as $x) $inc *= $x;
 				for ($i=0; $i < $inc; $i++)
-					$row = mysql_fetch_assoc($r);
+					$row = $st->fetch(PDO::FETCH_ASSOC);
 				unset($obj);
 			}
 			
-			return $base_objs;
+			$res = new TMResult(true);
+			$res->result = &$base_objs;
+			return $res;
 		}
 		
 		
@@ -437,28 +502,56 @@
 		//    - the number of altered rows on success
 		
 		static function update($updates, $conditions, $debug = false) {
+			self::$bind_params = [ ];
 			
-			if (!is_array($conditions) && ! $conditions instanceof Condition)
-				return false;
-				
+			if (!is_array($conditions) && ! $conditions instanceof Condition) {
+				$res = new TMResult(false, TMResult::InvalidConditions);
+				return $res;
+			}
+			
 			$t_name = &self::getTableName();
 			
-			if ($errors = self::validate($updates))		// [col => val, ...]
-				return $errors;
+			// Validate updates
+			$errors = self::validateArray($updates);    // [col => val, ...]
+			if (count($errors)) {
+				$res = new TMResult(false, TMResult::InvalidData);
+				$res->errors = $errors;
+				return $res;
+			}
 			
-			foreach($updates as $c => $v)
-				$set []= "$c = " . ((is_int($v) or is_float($v)) ? $v : "'" . mysql_real_escape_string($v) . "'");
-			$set = 'set ' . implode(', ', $set);
+			// Validate conditions
+			$errors = self::validateConditions($conditions);
+			if (count($errors)) {
+				$res = new TMResult(false, TMResult::InvalidConditions);
+				$res->errors = $errors;
+				return $res;
+			}
 			
-			$cond = self::conditionStr($conditions);
-			if ($cond === '') return false;
-				// conditionStr() may return an empty string if an array of non-Condition objects
-				// was passed in.
+			$set_subqs = [ ];
+			foreach ($updates as $c => $v) {
+				$set_subqs []= "$c = ?";
+				self::$bind_params []= $v;
+			}
+			$set_subqs = 'set ' . implode(', ', $set_subqs);
 			
-			$q = "update $t_name $set $cond";
+			$cond = self::getCondStr_AndAddBindParams($conditions);
+			
+			$q = "update $t_name $set_subqs $cond";
 			if ($debug) var_dump($q);
-			$r = mysql_query($q);
-			return ($r ? mysql_affected_rows() : false);
+			$st = self::$pdo->prepare($q);
+			
+			self::bindBindParams($st);
+			
+			$r = $st->execute();
+			if ($r) {
+				$res = new TMResult(true);
+				$res->result = $st->rowCount();
+				return $res;
+			}
+			else {
+				$res = new TMResult(false, TMResult::InternalError);
+				return $res;
+			}
 		}
 		
 		
@@ -468,34 +561,47 @@
 		//    - false on db error
 		//    - the insert id on success
 		
-		function insert() {
+		function insert($debug = false) {
+			self::$bind_params = [ ];
 			$t_name = &self::getTableName();
 			$fields = get_object_vars($this);
 			
 			// Check fields are legal
-			$errors = self::validate($fields);
-			if (count($errors)) return $errors;
+			$errors = self::validateArray($fields);
+			if (count($errors)) {
+				$res = new TMResult(false, TMResult::InvalidData);
+				$res->errors = $errors;
+				return $res;
+			}
 			
-			$cols = $vals = array();
+			$cols = $vals = [ ];
 			
 			foreach ($fields as $c => $v) {
 				if ($v === null) continue;
 				$cols []= $c;
-				if (is_int($v) or is_float($v)) $vals []= $v;
-				else							$vals []= "'" . mysql_real_escape_string($v) . "'";
+				$vals []= '?';
+				self::$bind_params []= $v;
 			}
 			
 			$cols = implode(', ', $cols);
 			$vals = implode(', ', $vals);
 			
-			$q = "insert into $t_name
-					( $cols )
-					values ( $vals )";
+			$q = "insert into $t_name ( $cols ) values ( $vals )";
+			if ($debug) var_dump($q);
+			$st = self::$pdo->prepare($q);
 			
-			if (!$r = mysql_query($q))
-				return false;
-			else
-				return mysql_insert_id();
+			self::bindBindParams($st);
+			
+			$r = $st->execute();
+			if ($r) {
+				$res = new TMResult(true);
+				$res->result = (int) self::$pdo->lastInsertId();
+				return $res;
+			}
+			else {
+				$res = new TMResult(false, TMResult::InternalError);
+				return $res;
+			}
 		}
 		
 	}
