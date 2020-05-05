@@ -326,10 +326,12 @@
 				}
 				$query_select_columns []= implode(', ', $q);
 				
-				$q = array();
-				foreach ($join->cols as $jcol)
-					$q []= "$parent_prefix.$jcol = $prefix.$jcol";
-				$query_joins []= "left join $table as $prefix on " . implode(' and ', $q);
+				$join_conditions = array();
+				foreach ($join->cols as $k => $v) {
+					if (is_string($k)) $join_conditions []= "$parent_prefix.$k = $prefix.$v";
+					else               $join_conditions []= "$parent_prefix.$v = $prefix.$v";
+				}
+				$query_joins []= "left join $table as $prefix on " . implode(' and ', $join_conditions);
 				
 				foreach($join->joins as $k => &$j) {
 					if (! $j instanceof Join)
@@ -357,7 +359,7 @@
 			$q = "select $query_select_columns from $table as a $query_joins $cond";
 			if ($debug) var_dump($q);
 			$r = mysql_query($q);
-			if (!$r) return false;			
+			if (!$r) return false;
 
 			$base_objs = array();
 			$increments_from_stalled_joins = array();

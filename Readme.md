@@ -162,8 +162,16 @@ You can pass a Join object or an array of Join objects to a call to `fetch`, to 
 The constructor has the arguments:
 
 - *class:* The name of the class (*not* the table name). For instance, `'User'`.
-- *columns:* The name of the column(s) on which to join, as a string. The columns must have the same name in both tables. If an array of strings is passed, each specified column must contain the same datum in both tables for the rows to be joined.
+- *columns:* The name of the column(s) on which to join.You can pass:
+	- a string – the name of the column is the same in both tables
+	- an array of strings – an array of columns present in both tables
+	- an associative array – the key specifies the home column, and the value specified the away column
 - *joins:* Optionally, a further Join or array of Joins to perform off the joined table.
+
+When more than one column is provided for a join, all specified columns’ values must be the same in both tables for the row to be joined. i.e. the query is as follows:
+
+    new Join(T2, ['colA', 'colB'])
+    –> ...left join t2 on t1.colA = t2.colA and t1.colB = t2.colB
 
 
 ### Password columns
