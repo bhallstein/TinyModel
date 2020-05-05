@@ -5,13 +5,14 @@
 
 How to run:
 
+	(These tests require PHPUnit to be installed.)
 	Ensure you have cd'd into the Tests directory, then you can run:
 
 	./cmd_createTestDB      # create the TinyModel_Test database and user
 	                        # (will prompt for mysql root password)
 
 	./cmd_runTests          # run the tests
-	
+
 
 
 Some info:
@@ -57,12 +58,12 @@ Some info:
 	few individual insert() calls, and check in the TMResult object that all of the proper errors
 	have been detected.
 	
-	To better sectionalise everything, I've used PHPInfo's usually individual test functions to
+	To better sectionalise everything, I've used PHPUnit's usually individual test functions to
 	wrap multiple tests. The progress of individual tests is then indicated by using the wrapAssert()
 	method, which prints a description of the actual test(s) being performed underneath PHPInfo's usual
 	not very descriptive output of '.'.
 	
-	This gives more, better info on what tests are being run, and splits testing up into sections,
+	This gives more, better output regarding the tests being run, and splits testing up into sections,
 	which I find preferable to writing a zillion little functions in this case.
 
 	Ben Hallstein, Nov 2014
