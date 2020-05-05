@@ -201,8 +201,11 @@
 				// Get subclass info & convert to array of Column objects
 				$subclass_cols = $subclass_name::describe();
 				$cols[$subclass_name] = [ ];
-				foreach ($subclass_cols as $col => $col_definition_string)
+				foreach ($subclass_cols as $col => $col_definition_string) {
+					if (is_array($col_definition_string))
+						$col_definition_string = $col_definition_string[0];
 					$cols[$subclass_name][$col] = new Column($col_definition_string);
+				}
 			}
 			return $cols[$subclass_name];
 		}
