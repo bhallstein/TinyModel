@@ -211,16 +211,20 @@
 				self::$tableNames = [ ];
 			if (self::$tableNames[$subclass_name = get_called_class()] === null) {
 				$class = strtolower($subclass_name);
-				$c = substr($class, -1);
-				$c2 = substr($class, -2, -1);
-				$c2_vowel = preg_match('/[aeiou]+/', $c2);
-				if ($c == 'y' && !$c2_vowel)
-					self::$tableNames[$subclass_name] = substr($class, 0, -1) . 'ies';
-				else if (($c == 's' && $c2_vowel) || $c == 'h')
-					self::$tableNames[$subclass_name] = $class . 'es';
-				else self::$tableNames[$subclass_name] = $class . 's';
+				self::$tableNames[$subclass_name] = self::plural($class);
 			}
 			return self::$tableNames[$subclass_name];
+		}
+		
+		protected static function plural($s) {
+			$c = substr($s, -1);
+			$c2 = substr($s, -2, -1);
+			$c2_vowel = preg_match('/[aeiou]+/', $c2);
+			if ($c == 'y' && !$c2_vowel)
+				return substr($s, 0, -1) . 'ies';
+			else if (($c == 's' && $c2_vowel) || $c == 'h')
+				return $s . 'es';
+			return $s . 's';
 		}
 		
 		
