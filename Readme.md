@@ -1,6 +1,6 @@
 # TinyModel
 
-TinyModel is a PHP superclass that handles the translation of database tables into nice usable objects and vice versa.
+TinyModel is a PHP superclass that handles the translation of database tables into user-friendly nested objects and vice versa.
 
 If you have a table `users` with columns `INT userid` and `VARCHAR(N) username` you would create a class `User` as follows:
 
@@ -62,7 +62,7 @@ e.g. Insert a favourite for Jimmy into the `favourites` table.
 *Return value:* the id of the inserted row, or `false`if the query failed, or an array of errors if the inserted values did not match the field types specified as the constants in the subclass definition.
 
 
-## Usage in a web applcation
+## Usage in a web application
 
 Typically, then, you define your TinyModel in a single file, like so:
 
@@ -110,29 +110,27 @@ The controller layer then generally consists of calling the `fetch`, `update` an
      *
      */
     
-    require_once($pathToRoot . 'M/TinyModel.php');
+    require_once($pathToRoot . 'M/Model.php');
     
-    // Authenticate
-    include('i_authenticate.php');
-    if ($auth_error) exit('noauth');
-    	
-    $itemid = (int) $_GET['i'];
+    // [authenticate]
     
+    $itemid = (int) $_GET['itemid'];
     $r = Item::update(
     	array(
     		'name' => urldecode($_GET['name']),
     		'description' => urldecode($_GET['desc'])
     	),
-    	array('itemid' => $itemid, 'userid' => $auth_userid)
+    	array('itemid' => $itemid, 'userid' => $userid)
     );
     if ($r === false || is_array($r)) {
     	// oh dear
     }
+	
 	// success
 
 
 ## License
 
-TinyModel is published under the MIT license.
+TinyModel is published under the open source MIT license.
 
 Ben Hallstein
