@@ -7,26 +7,31 @@
 	// Define our tables
 	
 	class User extends TinyModel {
-		const userid   = 'int';
-		const username = 'alphanumeric';
-		const email    = 'email';
-		const password = 'text';
-		const salt     = 'alphanumeric';
+		const userid   = 'int notnull';
+		const username = 'varchar alphanumeric maxlength=20';
+		const email    = 'varchar email';
+		const password = 'varchar text';
+		const salt     = 'varchar alphanumeric';
 		const date     = 'timestamp';
 	}
 	
 	class Thing extends TinyModel {
-		const thingid   = 'int';
-		const thingname = 'alphanumeric';
+		const thingid   = 'int notnull';
+		const thingname = 'varchar alphanumeric';
 	}
 	
 	class Favourite extends TinyModel {
-		const favouriteid = 'int';
-		const userid      = 'int';
-		const thingid     = 'int';
+		const favouriteid = 'int notnull';
+		const userid      = 'int notnull';
+		const thingid     = 'int notnull';
 	}
 	
+
+	echo '<pre>';
+	
+	
 	// Insert a user
+	
 	$u = new User;
 	$u->username = 'geoff';
 	$u->email = 'something@somewhere.com';
@@ -34,9 +39,9 @@
 	$u->salt = 'alghlks';
 	$r = $u->insert();
 	if ($r === false)
-		echo "coudn't add a geoff!";
+		echo "coudn't add geoff!";
 	else if (is_array($r)) {
-		echo "invalid input adding a geoff: ";
+		echo "invalid input adding user: ";
 		print_r($r);
 	}
 	else {
@@ -45,32 +50,46 @@
 	}
 	echo "\n";
 	
+	
 	// Insert a thing for Geoff to enjoy
+	
 	$t = new Thing;
 	$t->thingname = "squishy";
 	$r = $t->insert();
-	if (!is_int($r))
+	if ($r === false)
 		echo "couldn't add a squishy";
+	else if (is_array($r)) {
+		echo "invalid input adding thing:\n";
+		print_r($r);
+	}
 	else {
 		$thing_id = $r;
-		echo "added squishy with id ", $thing_id;
+		echo "added thing with id ", $thing_id;
 	}
 	echo "\n";
 	
+	
 	// Geoff favourites the squishy
+	
 	$f = new Favourite;
 	$f->userid = $geoff_id;
 	$f->thingid = $thing_id;
 	$r = $f->insert();
-	if (!is_int($r))
+ 	if ($r === false)
 		echo "couldn't add favourite";
+	else if (is_array($r)) {
+		echo "invalid input adding favourite:\n";
+		print_r($r);
+	}
 	else {
 		$fav_id = $r;
 		echo "added favourite with id $fav_id";
 	}
 	echo "\n";
 	
+	
 	// Fetch the user
+	
 	$r = User::fetch(
 		array('userid' => $geoff_id),
 		array(new Join('Favourite', 'userid', new Join('Thing', 'thingid')))
@@ -84,4 +103,6 @@
 		$things = $geoff_faves[0]->things;
 		echo $things[0]->thingname;
 	}
+	
+	echo '</pre>';
 ?>

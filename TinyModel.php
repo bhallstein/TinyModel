@@ -1,12 +1,12 @@
 <?
 
 	/*
-	 *
 	 * TinyModel - a sort of model type thing
 	 *
-	 * Such that objects representing database tables can be easily defined by subclassing.
-	 * Functionality is exposed through the methods `fetch`, `insert`, and `update`,
-	 * and nice, nested objects are returned.
+	 * TinyModel allows objects representing the DB model to be easily defined by subclassing.
+	 * Functionality is exposed through the methods `fetch`, `insert`, and `update`.
+	 * 
+	 * On success, `fetch` generates & returns nested objects from the data retrieved.
 	 *
 	 * Copyright (c) 2010 - Ben Hallstein - ben.am
 	 * Published under the MIT license - http://opensource.org/licenses/MIT
@@ -19,6 +19,63 @@
 	define('MOD_VERY_RECENT_CONDITION', '***1lg976syb0***');	// last 3.5 hours
 	define('MOD_VERY_RECENT_PERIOD', 12600);
 	
+	
+	// Definition string: 'type [restrictions]'
+	//   type: int float varchar text timestamp
+	// 	 restrictions: alphabetical alphanumeric email url positive notnull maxlength=N
+	
+	class Column {
+		public function __construct($definition_string) {
+			// Process definition string and set Column properties
+			$this->type = strtok($definition_string, ' ');
+			
+			while (($attrib = strtok(' ')) !== false) {
+				if ($attrib == 'alphabetical')      $this->rAlphabetical = true;
+				else if ($attrib == 'alphanumeric') $this->rAlphanumeric = true;
+				else if ($attrib == 'email')        $this->rEmail = true;
+				else if ($attrib == 'url')          $this->rURL = true;
+				else if ($attrib == 'positive')     $this->rPositiveNumber = true;
+				else if ($attrib == 'notnull')      $this->rNotNull = true;
+				else if (strpos($attrib, 'maxlength') !== false) {
+					$this->maxLength = explode('=', $attrib);
+					$this->maxLength = $this->maxLength[1];
+				}
+			}
+			
+			$this->definition_string = $definition_string;
+		}
+		
+		public function validate($val) {
+			if ($val === null && $this->rNotNull) return false;
+			if ($this->type == 'int')	{
+				if ($this->rPositiveNumber) return is_int($val) && $val >= 0;
+				return is_int($val);
+			}
+			else if ($this->type == 'float') {
+				if ($this->rPositiveNumber) return is_float($val) && $val >= 0;
+				return is_float($val);
+			}
+			else if ($this->type == 'varchar' || $this->type == 'text') {
+				if (!is_string($val)) return false;
+				$pass = true;
+				if ($this->rAlphabet)     $pass = mb_ereg_match('^[a-zA-Z]+$', $val);
+				else if ($this->rAlphanumeric) $pass = mb_ereg_match('^[a-zA-Z0-9]+$', $val);
+				else if ($this->rEmail) $pass = filter_var(mb_ereg_replace('[^\x00-\x7f]', '-', $val), FILTER_VALIDATE_EMAIL);
+				else if ($this->rURL)   $pass = filter_var(mb_ereg_replace('[^\x00-\x7f]', '-', $val), FILTER_VALIDATE_URL);
+				
+				if ($this->maxLength)
+					$pass = $pass && mb_strlen($val) <= $this->maxLength;
+				
+				return $pass;
+			}
+			else if ($this->type == 'timestamp') {
+				return mb_ereg('^\d{2,4}.\d\d.\d\d \d\d.\d\d.\d\d$', $val);
+			}
+			return false;
+		}
+	}
+	
+	
 	class Join {
 		public function __construct($cl, $co, $j = array()) {
 			$this->class = $cl;
@@ -27,30 +84,66 @@
 		}
 	}
 	
+	
+	
 	class TinyModel {
 		
-		static function tableCols() {
-			$rc = new ReflectionClass(get_called_class());
-			return $rc->getConstants();
+		private static $tableNames;		// Array of names of subclass tables: {'User' => 'users'}
+		private static $tableCols;		// Table columns {'User' => A}
+										//  - A is an array of Column objects, which have:
+										// 		- a type
+										// 		- a set of restrictions
+
+		// You must access the table name and columns through the getters, which perform reflection,
+		// returning the name/columns appropriate to the calling subclass (!)
+		
+		static function &getTableCols() {
+			if (self::$tableCols === null)
+				self::$tableCols = array();
+			if (self::$tableCols[$subclass_name = get_called_class()] === null) {
+				// Get the column definitions from the user subclass
+				$rc = new ReflectionClass($subclass_name);
+				$columns = $rc->getConstants();			// -> {constant_name => constant_value}
+				
+				// Create static array of Column objects
+				self::$tableCols[$subclass_name] = array();
+				foreach ($columns as $col_name => $col_definition_string) {
+					self::$tableCols[$subclass_name][$col_name] = new Column($col_definition_string);
+				}
+			}
+			return self::$tableCols[$subclass_name];
 		}
-		static function tableName() {
-			$class = strtolower(get_called_class());
-			$c = substr($class, -1);
-			$c2 = substr($class, -2, -1);
-			if ($c == 'y' && !preg_match('/[aeiou]+/', $c2))
-				return substr($class, 0, -1) . 'ies';
-			if ($c == 'h')
-				return $class . 'es';
-			return $class . 's';
+	  	static function &getTableName() {
+			if (self::$tableNames === null)
+				self::$tableNames = array();
+			if (self::$tableNames[$subclass_name = get_called_class()] === null) {
+				$class = strtolower($subclass_name);
+				$c = substr($class, -1);
+				$c2 = substr($class, -2, -1);
+				if ($c == 'y' && !preg_match('/[aeiou]+/', $c2))
+					self::$tableNames[$subclass_name] = substr($class, 0, -1) . 'ies';
+				else if ($c == 'h')
+					self::$tableNames[$subclass_name] = $class . 'es';
+				else self::$tableNames[$subclass_name] = $class . 's';
+			}
+			return self::$tableNames[$subclass_name];
 		}
 		
+		
+		// objFromRow:
+		// 	- take a row of a table containing one of this class:
+		// 	    - the row will has a prefix, eg a_users
+		//  	- for each column defined in this class, attempt to fetch it from row
+		//		- return object or null if nothing found
 		static function objFromRow($row, $prefix) {
-			$cols = array_keys(self::tableCols());
+			$cols = array_keys(self::getTableCols());
 			$new_obj = new static();
 			$n_imported_columns = 0;
-			foreach($cols as $col)
-				if (null !== ($new_obj->$col = $row[$prefix . '_' . $col]))
+			foreach($cols as $col) {
+				$new_obj->$col = $row[$prefix . '_' . $col];
+				if ($new_obj->$col !== null)
 					$n_imported_columns++;
+			}
 			return ($n_imported_columns == 0) ? null : $new_obj;
 		}
 		
@@ -77,40 +170,40 @@
 			return 'where ' . implode($use_or_conditions ? ' or ' : ' and ', $subq);
 		}
 		
-		static function validate($fields) {
-			$consts = self::tableCols();
-			$errors = false;
+		
+		// Validate
+		// 	- take an array of fields: {column_name => value}, ... 
+		//  - check that the supplied columns exist, and the values pass validation
+		//  - returns an array of errors: {column_name => error}, ...
+		
+		static function validate(&$fields) {
+			$class_columns = &self::getTableCols();
+			$errors = array();
 			
-			foreach($fields as $col => $val) {
-				if (!isset($consts[$col]))
-					$errors[$col] = 'Illegal table field';
-				else if ($val !== null) {
-					$t = $consts[$col];
-					$r = false;
-
-					if ($t == 'float')             $r = is_float($val);
-					else if ($t == 'int')          $r = is_int($val);
-					else if ($t == 'timestamp')    $r = mb_ereg('^\d{2,4}.\d\d.\d\d \d\d.\d\d.\d\d$', $val);
-					else if ($t == 'alphanumeric') $r = mb_ereg_match('^[a-zA-Z0-9]+$', $val);
-					else if ($t == 'text') 		   $r = true;	// We should probably do something here!
-					else if ($t == 'url')
-						$r = filter_var(mb_ereg_replace('[^\x00-\x7f]', '-', $val), FILTER_VALIDATE_URL);
-					else if ($t == 'email')
-						$r = filter_var(mb_ereg_replace('[^\x00-\x7f]', '-', $val), FILTER_VALIDATE_EMAIL);
-						
-					if (!$r) {
-						$errors[$col] = 'Illegal value';
-						pxLog("Model_class: illegal value in validate(): $col => $val");
-					}
+			foreach($fields as $columnName => $value) {
+				$col = $class_columns[$columnName];
+				
+				if (!isset($col))
+					$errors[$columnName] = 'Unknown column name';
+					
+				else if ($value == null)
+					$errors[$columnName] = 'Null value supplied';
+				
+				else {
+					$validated = $col->validate($value);
+					if (!$validated)
+						$errors[$columnName] = 'Illegal ' . gettype($value) . ' value \'' . $value .
+							'\' (column definition: ' . $col->definition_string . ')';
 				}
 			}
 			
-			return $errors;			
+			return $errors;
 		}
 		
+		
 		public function wouldDifferFromRow(&$row, $prefix) {
-			$id_column = array_shift(array_keys(self::tableCols()));
-			return $row["{$prefix}_$id_column"] != $this->$id_column;
+			$id_column = array_shift(array_keys(self::getTableCols()));
+			return $row["{$prefix}_{$id_column}"] != $this->$id_column;
 		}
 		
 		public function appendToArray($arrname, $val) {
@@ -118,10 +211,15 @@
 				$this->$arrname = array();
 			array_push($this->$arrname, $val);
 		}
-
+		
+		
+		// Fetch: fetch from the table with the given conditions & joins
+		// 	- returns false on db error
+		//  - returns an array reresenting the returned object(s) on success
+		
 		static function fetch($conditions = array(), $joins = array(), $use_or_conditions = false, $debug = false) {
-			$table = self::tableName();
-			$cols  = self::tableCols();
+			$table = &self::getTableName();
+			$cols  = &self::getTableCols();
 			
 			foreach($cols as $colname => $coltype) $q []= "a.$colname as a_{$colname}";
 			$query_select_columns = array( implode(', ', $q) );
@@ -137,8 +235,8 @@
 				$parent_prefix = $parent ? $parent->prefix : 'a';
 				
 				$cla = $join->class;
-				$table = $cla::tableName();
-				$cols  = $cla::tableCols();
+				$table = &$cla::getTableName();
+				$cols  = &$cla::getTableCols();
 				
 				$q = array();
 				foreach ($cols as $colname => $coltype) {
@@ -181,10 +279,10 @@
 				if ($j->stalled) return;
 				
 				$cla = $j->class;
-				$table = $cla::tableName();
+				$table = $cla::getTableName();
 				$prefix = $j->prefix;
 				
-				$id_column = array_shift(array_keys($cla::tableCols()));
+				$id_column = array_shift(array_keys($cla::getTableCols()));
 				if ($row["{$prefix}_$id_column"] == null) {
 					$j->stalled = true;
 					return;
@@ -234,6 +332,12 @@
 			return $base_objs;
 		}
 		
+		
+		// Update: update a value in the table
+		//  - returns an array of errors if the updated values fail validation
+		// 	- returns false on db error
+		//  - returns the number of altered rows on success
+		
 		static function update($updates, $conditions) {
 			$t_name = self::tableName();
 			
@@ -251,13 +355,19 @@
 			return ($r ? mysql_affected_rows() : false);
 		}
 		
+		
+		// Insert: insert this object into its table
+		// 	- if illegal values encoutered, returns an array of errors
+		// 	- on db error, returns false
+		//	- otherwise, returns the insert id
+		
 		function insert() {
-			$t_name = self::tableName();
-			
+			$t_name = &self::getTableName();
 			$fields = get_object_vars($this);
 			
-			if ($errors = self::validate($fields))
-				return $errors;
+			// Check fields are legal
+			$errors = self::validate($fields);
+			if (count($errors)) return $errors;
 			
 			$cols = $vals = array();
 			
