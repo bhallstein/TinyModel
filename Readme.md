@@ -13,6 +13,7 @@ If you have a table `users` with columns `INT userid` and `VARCHAR(N) username` 
 
 You can then interact with the database table via a User object, via the three following methods:
 
+
 ## fetch
 
 `fetch($conditions, $joins, $use_or_conditions = false)`
@@ -27,6 +28,7 @@ e.g. Fetch users, joined to their favourites, joined to the specific things they
     );
 
 *Return value:* an array representing the fetched objects, or `false` if the query failed
+
 
 ## update
 
@@ -43,6 +45,7 @@ e.g. Update username of user with userid 12 to `jimmy`:
 
 *Return value:* the number of affected rows, or `false` if the query failed, or an array of errors if the inserted values were did not match the field types specified as constants in the subclass definition.
 
+
 ## insert
 
 `insert()`
@@ -57,3 +60,10 @@ $f->thingid = $thingid;
 $f->insert();
 
 *Return value:* the id of the inserted row, or `false`if the query failed, or an array of errors if the inserted values were did not match the field types specified as constants in the subclass definition.
+
+
+## License
+
+TinyModel is published under the MIT license.
+
+Ben Hallstein
