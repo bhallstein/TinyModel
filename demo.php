@@ -72,7 +72,7 @@
 	// Update the object's name
 	$r = Thing::update(
 		array('thingname' => "tshirt"),
-		array('thingid' => $thing_id)
+		new Condition('thingid', $thing_id)
 	);
 	if ($r === false)
 		echo "couldn't update the squishy";
@@ -81,7 +81,7 @@
 		print_r($r);
 	}
 	else {
-		echo "updated ", $r, " columns to have name 't-shirt'";
+		echo "updated ", $r, ' item' . ($r == 1 ? '' : 's') . " in 'things' table to have name 't-shirt'";
 	}
 	echo "\n";
 	
@@ -108,17 +108,18 @@
 	// Fetch the user
 	
 	$r = User::fetch(
-		array('userid' => $geoff_id),
-		array(new Join('Favourite', 'userid', new Join('Thing', 'thingid')))
+		new Condition('userid', $geoff_id),
+		array(new Join('Favourite', 'userid', new Join('Thing', 'thingid'))),
+		true
 	);
 	if (!is_array($r))
-		echo "something went terribly wrong.";
+		echo "TinyModel::fetch() returned false\n";
 	else {
 		echo "got Geoff, and geoff's favourites table, and the things themselves:\n";
 		print_r($r);
 		$geoff_faves = $r[0]->favourites;
 		$things = $geoff_faves[0]->things;
-		echo "first favourited object name: ", $things[0]->thingname;
+		echo "Geoff's first favourited object name: ", $things[0]->thingname;
 	}
 	
 	echo '</pre>';

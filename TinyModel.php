@@ -13,14 +13,8 @@
 	 *
 	 */
 	
-	// Some constant definitions
-	define('MOD_RECENT_CONDITION', '***87hdsf2890***');			// last 2 weeks
-	define('MOD_RECENT_PERIOD', 1209600);
-	define('MOD_VERY_RECENT_CONDITION', '***1lg976syb0***');	// last 3.5 hours
-	define('MOD_VERY_RECENT_PERIOD', 12600);
 	
-	
-	// Definition string: 'type [restrictions]'
+	// Column definition string: 'type [restrictions]'
 	//   type: int float varchar text timestamp
 	// 	 restrictions: alphabetical alphanumeric email url positive notnull maxlength=N
 	
@@ -85,14 +79,81 @@
 	}
 	
 	
+	class Condition {
+		private $column;
+		private $test;
+		private $value;
+ 		public $conjoinment;
+		
+		private static $testStrings;
+		
+		const Equals              = 0;
+		const NotEquals           = 1;
+		const LessThan            = 2;
+		const LessThanOrEquals    = 3;
+		const GreaterThan         = 4;
+		const GreaterThanOrEquals = 5;
+		
+		const _And = 20;
+		const _Or = 21;
+		
+		const Recent = 50;
+		
+		public function __construct($col, $val, $test = self::Equals, $conjoinment = self::_And) {
+			$this->column = $col;
+			$this->value = $val;
+			$this->test = $test;
+			$this->conjoinment = ($conjoinment == self::_And ? 'and' : 'or');
+		}
+		
+		public function toStr($prefix = '') {
+			// Return the condition as a string
+			if ($prefix !== '') $prefix .= '.';
+			
+			if ($this->value == self::Recent) {
+				// period should be stored in test
+				$s = 'unix_timestamp(now()) - unix_timestamp(' .
+						escape_string($this->column) . ') < ' . (int)$this->test;
+			}
+			else if ($this->column === 'password') {
+				$s = "{$prefix}password = md5(sha(concat(salt, '" .
+						escape_string($this->value) .
+						"')))";
+			}
+			else {
+				$s = $prefix . mysql_real_escape_string($this->column) .
+					' ' . self::$testStrings[$this->test] . ' ' .
+					(
+						(is_int($this->val) or is_float($this->val)) ? $this->val :
+						("'" . mysql_real_escape_string($this->value) . "'")
+					);
+			}
+			
+			return $s;
+		}
+		
+		public static function _init() {
+			self::$testStrings = array(
+				self::Equals              => '=',
+				self::NotEquals           => '!=',
+				self::LessThan            => '<',
+				self::LessThanOrEquals    => '<=',
+				self::GreaterThan         => '>',
+				self::GreaterThanOrEquals => '>='
+			);
+		}
+	}
+	Condition::_init();
+	
+	
 	
 	class TinyModel {
 		
 		private static $tableNames;		// Array of names of subclass tables: {'User' => 'users'}
 		private static $tableCols;		// Table columns {'User' => A}
 										//  - A is an array of Column objects, which have:
-										// 		- a type
-										// 		- a set of restrictions
+										//    - a type
+										//    - a set of restrictions
 
 		// You must access the table name and columns through the getters, which perform reflection,
 		// returning the name/columns appropriate to the calling subclass (!)
@@ -131,10 +192,10 @@
 		
 		
 		// objFromRow:
-		// 	- take a row of a table containing one of this class:
-		// 	    - the row will has a prefix, eg a_users
-		//  	- for each column defined in this class, attempt to fetch it from row
-		//		- return object or null if nothing found
+		//  - take a row of a table containing one of this class:
+		//    - the row will has a prefix, eg a_users
+		//    - for each column defined in this class, attempt to fetch it from row
+		//    - return object or null if nothing found
 		static function objFromRow($row, $prefix) {
 			$cols = array_keys(self::getTableCols());
 			$new_obj = new static();
@@ -147,27 +208,42 @@
 			return ($n_imported_columns == 0) ? null : $new_obj;
 		}
 		
-		static function formatConditions($conditions, $prefix = '', $use_or_conditions = false) {
-			if (count($conditions) == 0) return '';
+		
+		// conditionStr:
+		//  - return the conditions formatted into a string for use in an SQL statement
+		//  - accept either:
+		//    - a Condition object
+		//    - a (nested) array of Condition objects
+		
+		static function conditionStr($c, $prefix = '') {
+			$s = '';
 
-			if ($prefix !== '') $prefix .= '.';
+			if ($c instanceof Condition) {
+				$s .= 'where ';
+				$s .= $c->toStr($prefix);
+			}
 
-			$subq = array();
-			foreach ($conditions as $col => $val) {
-				if ($val === MOD_RECENT_CONDITION)
-					$s = "unix_timestamp(now()) - unix_timestamp($col) < " . MOD_RECENT_PERIOD;
-				else if ($val === MOD_VERY_RECENT_CONDITION)
-					$s = "unix_timestamp(now()) - unix_timestamp($col) < " . MOD_VERY_RECENT_PERIOD;
-				else if ($col === 'password')
-					$s = "{$prefix}password = md5(sha(concat(salt, '" . mysql_real_escape_string($val) . "')))";
-				else
-					$s = $prefix . mysql_real_escape_string($col) . " = " . (
-							(is_int($val) or is_float($val)) ? $val : ("'" . mysql_real_escape_string($val) . "'")
-						);
-				$subq []= $s;
+			else if (is_array($c) && count($c)) {
+				echo "iterating...\n";
+				// Iterate recursively over the array of conditions
+				$getConditionStringForArray = function($a) use(&$getConditionStringForArray) {
+					$conjoinment = null;
+					$s = '';
+					foreach ($a as $c) {
+						if ($conjoinment) $s .= $conjoinment . ' ';
+						if (is_array($c))
+							$s .= '(' . $getConditionStringForArray($c) . ') ';
+						else if ($c instanceof Condition) {
+							$s .= $c->toStr($prefix) . ' ';
+							$conjoinment = $c->conjoinment;
+						}
+					}
+					return $s;
+				};
+				$s .= $getConditionStringForArray($c);
 			}
 			
-			return 'where ' . implode($use_or_conditions ? ' or ' : ' and ', $subq);
+			return $s;
 		}
 		
 		
@@ -201,12 +277,12 @@
 		}
 		
 		
-		public function wouldDifferFromRow(&$row, $prefix) {
+		private function wouldDifferFromRow(&$row, $prefix) {
 			$id_column = array_shift(array_keys(self::getTableCols()));
 			return $row["{$prefix}_{$id_column}"] != $this->$id_column;
 		}
 		
-		public function appendToArray($arrname, $val) {
+		function appendToArray($arrname, $val) {
 			if (!isset($this->$arrname) or !is_array($this->$arrname))
 				$this->$arrname = array();
 			array_push($this->$arrname, $val);
@@ -217,7 +293,7 @@
 		// 	- returns false on db error
 		//  - returns an array reresenting the returned object(s) on success
 		
-		static function fetch($conditions = array(), $joins = array(), $use_or_conditions = false, $debug = false) {
+		static function fetch($conditions = array(), $joins = array(), $debug = false) {
 			$table = &self::getTableName();
 			$cols  = &self::getTableCols();
 			
@@ -228,7 +304,8 @@
 			$query_joins       = array();
 			$i = 0;
 			
-			$add_join = function(&$join, &$parent = null) use (&$i, &$query_select_columns, &$query_joins, &$add_join) {
+			$add_join = function(&$join, &$parent = null)
+				use (&$i, &$query_select_columns, &$query_joins, &$add_join) {
 				$join->prefix = $prefix = chr($i++ + 98);
 				$join->parent = $parent;
 				$join->stalled = false;
@@ -258,8 +335,9 @@
 			$query_select_columns = implode(', ', $query_select_columns);
 			$query_joins = implode(' ', $query_joins);
 			
-			$cond = self::formatConditions($conditions, 'a', $use_or_conditions);
-            
+			$cond = self::conditionStr($conditions, 'a');
+			if ($cond === '') return false;
+
 			$q = "select $query_select_columns from $table as a $query_joins $cond";
 			if ($debug) var_dump($q);
 			$r = mysql_query($q);
@@ -339,6 +417,10 @@
 		//  - returns the number of altered rows on success
 		
 		static function update($updates, $conditions) {
+			
+			if (!is_array($conditions) && ! $conditions instanceof Condition)
+				return false;
+				
 			$t_name = &self::getTableName();
 			
 			if ($errors = self::validate($updates))		// [col => val, ...]
@@ -348,7 +430,10 @@
 				$set []= "$c = " . ((is_int($v) or is_float($v)) ? $v : "'" . mysql_real_escape_string($v) . "'");
 			$set = 'set ' . implode(', ', $set);
 			
-			$cond = self::formatConditions($conditions);
+			$cond = self::conditionStr($conditions);
+			if ($cond === '') return false;
+				// conditionStr() may return an empty string if an array of non-Condition objects
+				// was passed in.
 			
 			$q = "update $t_name $set $cond";
 			$r = mysql_query($q);
