@@ -3,10 +3,17 @@
 	/*
 	 * TinyModel - a sort of model type thing
 	 *
-	 * TinyModel allows objects representing the DB model to be easily defined by subclassing.
+	 * TinyModel is a superclass that lets you easily define the Model layer of a web app, and
+	 * handles the translation of database tables into user-friendly nested objects, and vice versa.
+	 *
+	 * Each subclass you define represents a table in your DB schema. The columns of the table
+	 * are defined by adding a few simple class constants to the subclass, defining the name
+	 * and type of the column, and optional restrictions on what may be inserted in it.
+	 *
 	 * Functionality is exposed through the methods `fetch`, `insert`, and `update`.
 	 * 
-	 * On success, `fetch` generates & returns nested objects from the data retrieved.
+	 * The `fetch` method traverses the data retrieved, returning a nested array of objects that
+	 * is very easy to use in web application code.
 	 *
 	 * Copyright (c) 2010 - Ben Hallstein - ben.am
 	 * Published under the MIT license - http://opensource.org/licenses/MIT
@@ -155,7 +162,7 @@
 										//    - a type
 										//    - a set of restrictions
 
-		// You must access the table name and columns through the getters, which perform reflection,
+		// Table names and columns must be accessed using the getters, which perform reflection,
 		// returning the name/columns appropriate to the calling subclass (!)
 		
 		static function &getTableCols() {
@@ -193,9 +200,9 @@
 		
 		// objFromRow:
 		//  - take a row of a table containing one of this class:
-		//    - the row will has a prefix, eg a_users
-		//    - for each column defined in this class, attempt to fetch it from row
-		//    - return object or null if nothing found
+		//    - the row has a prefix, e.g. a_users
+		//    - for each column defined by this class, attempt to fetch it from row
+		//    - return an object or null if nothing found
 		static function objFromRow($row, $prefix) {
 			$cols = array_keys(self::getTableCols());
 			$new_obj = new static();
@@ -210,7 +217,7 @@
 		
 		
 		// conditionStr:
-		//  - return the conditions formatted into a string for use in an SQL statement
+		//  - return conditions formatted into a string for use in an SQL statement
 		//  - accept either:
 		//    - a Condition object
 		//    - a (nested) array of Condition objects
@@ -276,7 +283,6 @@
 			return $errors;
 		}
 		
-		
 		private function wouldDifferFromRow(&$row, $prefix) {
 			$id_column = array_shift(array_keys(self::getTableCols()));
 			return $row["{$prefix}_{$id_column}"] != $this->$id_column;
@@ -289,9 +295,10 @@
 		}
 		
 		
-		// Fetch: fetch from the table with the given conditions & joins
-		// 	- returns false on db error
-		//  - returns an array reresenting the returned object(s) on success
+		// Fetch: fetch rows from the table, using the given conditions & joins
+		// 	- returns:
+		//    - false on db error
+		//    - an array reresenting the returned object(s) on success
 		
 		static function fetch($conditions = array(), $joins = array(), $debug = false) {
 			$table = &self::getTableName();
@@ -304,8 +311,7 @@
 			$query_joins       = array();
 			$i = 0;
 			
-			$add_join = function(&$join, &$parent = null)
-				use (&$i, &$query_select_columns, &$query_joins, &$add_join) {
+			$add_join = function(&$join, &$parent = null) use (&$i, &$query_select_columns, &$query_joins, &$add_join) {
 				$join->prefix = $prefix = chr($i++ + 98);
 				$join->parent = $parent;
 				$join->stalled = false;
@@ -327,11 +333,23 @@
 					$q []= "$parent_prefix.$jcol = $prefix.$jcol";
 				$query_joins []= "left join $table as $prefix on " . implode(' and ', $q);
 				
-				foreach($join->joins as &$j)
-					$add_join($j, $join);
+				foreach($join->joins as $k => &$j) {
+					if (! $j instanceof Join)
+						unset($join->joins[$k]);
+					else
+						$add_join($j, $join);
+				}
 			};
 			
-			foreach($joins as &$j) $add_join($j);
+			if (!is_array($joins))
+				$joins = array($joins);
+			foreach($joins as $k => &$j) {
+				if (! $j instanceof Join)
+					unset($joins[$k]);
+				else
+					$add_join($j);
+			}
+				
 			$query_select_columns = implode(', ', $query_select_columns);
 			$query_joins = implode(' ', $query_joins);
 			
@@ -348,7 +366,8 @@
 			$row = mysql_fetch_assoc($r);
 			
 			$destall = function(&$join) use (&$increments_from_stalled_joins, &$destall) {
-				foreach($join->joins as &$_j) $destall($_j);
+				foreach($join->joins as &$_j)
+					$destall($_j);
 				$join->stalled = false;
 				unset($increments_from_stalled_joins[$join->prefix]);
 			};
@@ -412,9 +431,10 @@
 		
 		
 		// Update: update a value in the table
-		//  - returns an array of errors if the updated values fail validation
-		// 	- returns false on db error
-		//  - returns the number of altered rows on success
+		//  - returns:
+		//    - an array of errors if the updated values fail validation
+		// 	  - false on db error
+		//    - the number of altered rows on success
 		
 		static function update($updates, $conditions) {
 			
@@ -441,10 +461,11 @@
 		}
 		
 		
-		// Insert: insert this object into its table
-		// 	- if illegal values encoutered, returns an array of errors
-		// 	- on db error, returns false
-		//	- otherwise, returns the insert id
+		// Insert: insert the object into the table
+		//  - returns:
+		// 	  - an array of errors if illegal values encountered
+		// 	  - false on db error
+		//	  - the insert id on success
 		
 		function insert() {
 			$t_name = &self::getTableName();

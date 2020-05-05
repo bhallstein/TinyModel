@@ -109,8 +109,7 @@
 	
 	$r = User::fetch(
 		new Condition('userid', $geoff_id),
-		array(new Join('Favourite', 'userid', new Join('Thing', 'thingid'))),
-		true
+		new Join('Favourite', 'userid', new Join('Thing', 'thingid'))
 	);
 	if (!is_array($r))
 		echo "TinyModel::fetch() returned false\n";
@@ -119,7 +118,7 @@
 		print_r($r);
 		$geoff_faves = $r[0]->favourites;
 		$things = $geoff_faves[0]->things;
-		echo "Geoff's first favourited object name: ", $things[0]->thingname;
+		echo "Name of first favourited object: ", $things[0]->thingname;
 	}
 	
 	echo '</pre>';
