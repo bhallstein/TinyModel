@@ -52,9 +52,7 @@ TinyModel is a PHP superclass for defining the Model layer of your web applicati
 
 ### Example 2: Fetching with joins
 
-TinyModel extracts all results into objects of the classes you create. If there are joins, it extracts joined results into sub-objects, attaching an array of them to the parent object. This can be done recursively:
-
-*Login.php:*
+TinyModel extracts all results into objects of the classes you create. If there are joins, it extracts joined results into sub-objects, attaching an array of them to the parent object. TinyModel can perform this traversal recursively:
     
     require('MyModel.php');
     
@@ -65,8 +63,7 @@ TinyModel extracts all results into objects of the classes you create. If there 
         new Condition('userid', $p_userid),
         new Join('Favourite', 'userid', new Join('Item', 'itemid))
     );
-    if ($res->status != TMResult::Success) { ... }
-    else {
+    if ($res->status === TMResult::Success) {
         echo json_encode($res->result, JSON_PRETTY_PRINT);
     }
 
@@ -97,7 +94,7 @@ This might output:
 
 ## Defining tables
 
-To configure TinyModel, you define a set of subclasses, each of which represents a table in your database. Class constants specify the name and type of each column in the table, and optional restrictions on values.
+To configure TinyModel, you define a set of subclasses, each representing a table in your database. Class constants are then used to specify the name and type of the columns in the table, and optional restrictions on values.
 
 ### Class & table names
 
@@ -110,11 +107,11 @@ To define a column, you create a class constant with the same name as the column
 - type: one of the following: `int`, `float`, `char/varchar` (these are equivalent), `text`, `timestamp`
 - restrictions: one or more of: `alphabetical`, `alphanumeric`, `email`, `url`, `positive`, `notnull`, `maxlength=N`
 
-**Note on notnull:** ID columns are generally "not null" in the database, but should *not* be specified as such in your TinyModel column specification. This is because `insert()` and `update()` must allow null values for ID columns.
+**Note on notnull:** ID columns are generally "not null" in the database, but should *not* be specified as such in TinyModel column specification. This is because `insert()` and `update()` must allow null values for ID columns.
 
 ### Example of a class
 
-If you have tables `users` and `items`, you might create two classes as follows:
+If you have the tables `users` and `items`, you might create two classes as follows:
 
     class User extends TinyModel {
         const userid   = 'int';
@@ -128,7 +125,7 @@ If you have tables `users` and `items`, you might create two classes as follows:
         const itemname = 'varchar maxlength=20 notnull';
     }
 
-You can then interact with these tables via the `fetch`, `update` and `insert` methods.
+TinyModel then allows you to interact with these tables via the `fetch`, `update` and `insert` methods.
 
 
 ## TMResult
@@ -153,7 +150,7 @@ Fields:
 	- *InvalidData:*
 		- if some updates/inserts did not pass validation_error, an array of errors in the form `column_name => validation_error`
 	- *InternalError:*
-		- `errors` is set to the result of calling errorInfo() on the failing PDO statement
+		- `errors` is set to the result of calling `errorInfo()` on the failing PDO statement
 
 **Validation Errors:** these specify the type of error that was encountered when validating insert/update data or a condition:
 
@@ -162,10 +159,9 @@ Fields:
 - *UnknownObject:* a non-Condition object was passed where a Condition object was expected
 
 
-
 ## Methods
 
-All three methods return a TMResult object encapsulating success/failure, and returned data or errors.
+TinyModel’s three public methods all return a TMResult object encapsulating query status (success/failure), and returned data or errors.
 
 ### fetch
 
