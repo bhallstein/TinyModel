@@ -1,10 +1,10 @@
 #!/bin/bash
 
 MYSQLCMD="mysql -u root -p"
-
 if [ $# -ge 1 ]; then
   MYSQLCMD+="$1"
 fi
+
 
 # Create test DB
 echo -n "Creating test DB... "
