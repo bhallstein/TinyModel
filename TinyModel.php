@@ -187,7 +187,7 @@
 		}
 		
 		protected static $bind_params;				// When building a prepared statement, we store params here
-		protected function bindBindParams($st) {	// :P
+		protected static function bindBindParams($st) {	// :P
 			for ($i = 0, $n = count(self::$bind_params); $i < $n; ++$i)
 				$st->bindParam($i+1, self::$bind_params[$i]);
 		}
@@ -351,9 +351,9 @@
 				else if ($x instanceof Condition) {
 					$class_columns = self::getTableCols();
 					$colName       = $x->column;
-					$col           = $class_columns[$colName];
-					
-					if (!isset($col))
+					$col = (isset($class_columns[$colName]) ? $class_columns[$colName] : null);
+
+					if ($col === null)
 						$errors[$colName] = ValidationError::NonexistentColumn;
 					else if (!$col->validate($x->value, $x->test == Condition::Recent))
 						$errors[$colName] = ValidationError::InvalidValue;
@@ -480,7 +480,9 @@
 				$table = $cla::getTableName();
 				$prefix = $j->prefix;
 				
-				$id_column = array_shift(array_keys($cla::getTableCols()));
+				$cols = $cla::getTableCols();
+				$col_keys = array_keys($cols);
+				$id_column = array_shift($col_keys);
 				if ($row["{$prefix}_$id_column"] == null) {
 					$j->stalled = true;
 					return;
