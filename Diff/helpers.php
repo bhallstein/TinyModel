@@ -1,4 +1,9 @@
 <?php
+ /*
+  * Diff/helpers.php
+  *
+  */
+
 
 class Helpers {
 
@@ -173,14 +178,16 @@ class Helpers {
 
 	public static function clr($str, $col, $bold = self::BOLD) {
 		static $colcodes = [
-			'red'    => ';31',    'green'  => ';32',
-			'yellow' => ';33',    'blue'   => ';34',
-			'normal' => ''
+			'red'    => ';31',
+			'green'  => ';32',
+			'yellow' => ';33',
+			'blue'   => ';34',
+			'normal' => '',
 		];
 		return "\033[" . ($bold ? '1' : '0') . $colcodes[$col] . 'm' . $str . "\033[0m";
 	}
 
-	public static function implcol($arr, $col, $bold, $sep = ', ') {
+	public static function implcol($arr, $col, $bold = self::BOLD, $sep = ', ') {
 		// Color an array of words, inserting separators, returning string
 		return implode(
 			$sep,
@@ -215,7 +222,7 @@ class Helpers {
 		if (self::$p == -1) {
 			echo '--------------------', "\n",
 			     self::clr('TinyModel', 'blue'), ' / ',
-			     Helpers::clr('DB diff', 'normal'),  ":";
+			     Helpers::clr('DB diff', 'normal', self::BOLD),  ":";
 			for ($i = 0; $i < $h_padding; ++$i) echo ' ';
 			echo $s, "\n";
 			// echo '                    ';
@@ -235,9 +242,6 @@ class Helpers {
 
 	public static function get_option($opt) {
 		global $argv;
-		for ($i=2; $i < count($argv); ++$i)
-			if ($argv[$i] == $opt)
-				return true;
-		return false;
+		return in_array($opt, array_slice($argv, 2));
 	}
 }

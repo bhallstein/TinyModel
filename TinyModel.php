@@ -662,7 +662,8 @@
 	if (PHP_SAPI == 'cli' && count($argv) > 1 && $argv[1] == 'apply') {
 		function do_diff() {
 			require_once(__DIR__ . '/Diff/diff.php');
-			ech("\n");
+			TinyModel_diff();
+			echo "\n";
 		}
 		register_shutdown_function('do_diff');
 	}
