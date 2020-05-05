@@ -192,43 +192,29 @@
 				$st->bindParam($i+1, self::$bind_params[$i]);
 		}
 		
-		private static $tableNames;		// Array of names of subclass tables: {'User' => 'users'}
-		private static $tableCols;		// Table columns {'User' => A}
-										//  - A is an array of Column objects, which have:
-										//    - a type
-										//    - a set of restrictions
-
-		// Table names and columns must be accessed using the getters, which perform reflection,
-		// returning the name/columns appropriate to the calling subclass (!)
 		
 		protected static function &getTableCols() {
-			if (self::$tableCols === null)
-				self::$tableCols = [ ];
+			static $cols = [ ];
 
 			$subclass_name = get_called_class();
-			if (!isset(self::$tableCols[$subclass_name])) {
-				// Get the column definitions from the user subclass
-				$rc = new ReflectionClass($subclass_name);
-				$columns = $rc->getConstants();			// -> {constant_name => constant_value}
-				
-				// Create static array of Column objects
-				self::$tableCols[$subclass_name] = [ ];
-				foreach ($columns as $col_name => $col_definition_string) {
-					self::$tableCols[$subclass_name][$col_name] = new Column($col_definition_string);
-				}
+			if (!isset($cols[$subclass_name])) {
+				// Get subclass info & convert to array of Column objects
+				$subclass_cols = $subclass_name::describe();
+				$cols[$subclass_name] = [ ];
+				foreach ($subclass_cols as $col => $col_definition_string)
+					$cols[$subclass_name][$col] = new Column($col_definition_string);
 			}
-			return self::$tableCols[$subclass_name];
+			return $cols[$subclass_name];
 		}
 	  	protected static function &getTableName() {
-			if (self::$tableNames === null)
-				self::$tableNames = [ ];
+			static $tableNames = [ ];
 			
 			$subclass_name = get_called_class();
-			if (!isset(self::$tableNames[$subclass_name])) {
-				$class = mb_strtolower($subclass_name);
-				self::$tableNames[$subclass_name] = self::plural($class);
+			if (!isset($tableNames[$subclass_name])) {
+				$c = mb_strtolower($subclass_name);
+				$tableNames[$subclass_name] = self::plural($c);
 			}
-			return self::$tableNames[$subclass_name];
+			return $tableNames[$subclass_name];
 		}
 		
 		protected static function plural($s) {
@@ -386,7 +372,7 @@
 		
 		static function fetch($conditions = [ ], $joins = [ ], $debug = false) {
 			self::$bind_params = [ ];
-			$table = &self::getTableName();
+			$table = self::getTableName();
 			$cols  = &self::getTableCols();
 			
 			if ((is_array($conditions) && count($conditions) == 0) ||
@@ -418,8 +404,8 @@
 				$parent_prefix = ($parent ? $parent->prefix : 'a');
 				
 				$cla = $join->class;
-				$table = &$cla::getTableName();
-				$cols  = &$cla::getTableCols();
+				$jtable = $cla::getTableName();
+				$cols  = $cla::getTableCols();
 				
 				$q = [ ];
 				foreach ($cols as $colname => $col) {
@@ -433,7 +419,7 @@
 					if (is_string($k)) $join_conditions []= "$parent_prefix.$k = $prefix.$v";
 					else               $join_conditions []= "$parent_prefix.$v = $prefix.$v";
 				}
-				$query_joins []= "left join $table as $prefix on " . implode(' and ', $join_conditions);
+				$query_joins []= "left join $jtable as $prefix on " . implode(' and ', $join_conditions);
 				
 				foreach($join->joins as $k => &$j) {
 					if (!($j instanceof Join)) unset($join->joins[$k]);
@@ -446,7 +432,7 @@
 				if (!($j instanceof Join)) unset($joins[$k]);
 				else                       $add_join($j);
 			}
-				
+		
 			$query_select_columns = implode(', ', $query_select_columns);
 			$query_joins = implode(' ', $query_joins);
 			

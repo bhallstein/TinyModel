@@ -14,26 +14,39 @@
 	// Define tables for testing
 	
 	class User extends TinyModel {
-		const userid   = 'int';
-		const username = 'varchar alphanumeric maxlength=20 notnull';
-		const email    = 'varchar email maxlength=150 notnull';
-		const password = 'varchar maxlength=32 notnull';
-		const date     = 'timestamp';
-		const favourite_int   = 'int positive notnull';
-		const favourite_float = 'float positive notnull';
-		const biography = 'text maxlength=255 notnull';
-		const homepage  = 'varchar url maxlength=100';
+		public static function describe() {
+			return [
+				'userid'          => 'int',
+				'username'        => 'varchar alphanumeric maxlength=20 notnull',
+				'email'           => 'varchar email maxlength=150 notnull',
+				'password'        => 'varchar maxlength=32 notnull',
+				'date'            => 'timestamp',
+				'favourite_int'   => 'int positive notnull',
+				'favourite_float' => 'float positive notnull',
+				'biography'       => 'text maxlength=255 notnull',
+				'homepage'        => 'varchar url maxlength=100',
+			];
+		}
 	}
 	
 	class Thing extends TinyModel {
-		const thingid   = 'int';
-		const thingname = 'varchar alphabetical maxlength=24 notnull';
+		public static function describe() {
+			return [
+				'thingid'   => 'int',
+				'thingname' => 'varchar alphabetical maxlength=24 notnull',
+			];
+		}
+
 	}
 	
 	class Favourite extends TinyModel {
-		const favouriteid = 'int';
-		const userid      = 'int notnull';
-		const thing_id     = 'int notnull';
+		public static function describe() {
+			return [
+				'favouriteid' => 'int',
+				'userid'      => 'int notnull',
+				'thing_id'    => 'int notnull',
+			];
+		}
 	}
 	
 	

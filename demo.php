@@ -5,7 +5,7 @@
 	
 	try {
 		$conn = new PDO(
-			'mysql:host=127.0.0.1;dbname=testdb;charset=utf8',
+			'mysql:host=127.0.0.1;dbname=tinymodel_demo;charset=utf8',
 			'testuser',
 			'testpass'
 		);
@@ -20,23 +20,36 @@
 	// Define our tables
 	
 	class User extends TinyModel {
-		const userid   = 'int';
-		const username = 'varchar alphanumeric maxlength=20';
-		const email    = 'varchar email maxlength=150';
-		const password = 'varchar maxlength=32';
-		const salt     = 'varchar alphanumeric';
-		const date     = 'timestamp';
+		public static function describe() {
+			return [
+				'userid'   => 'int',
+				'username' => 'varchar alphanumeric maxlength=20',
+				'email'    => 'varchar email maxlength=150',
+				'password' => 'varchar maxlength=32',
+				'salt'     => 'varchar alphanumeric',
+				'date'     => 'timestamp',
+			];
+		}
 	}
 	
 	class Thing extends TinyModel {
-		const thingid   = 'int';
-		const thingname = 'varchar alphanumeric';
+		public static function describe() {
+			return [
+				'thingid'   => 'int',
+				'thingname' => 'varchar alphanumeric',
+			];
+		}
+
 	}
 	
 	class Favourite extends TinyModel {
-		const favouriteid = 'int';
-		const userid      = 'int notnull';
-		const thingid     = 'int notnull';
+		public static function describe() {
+			return [
+				'favouriteid' => 'int',
+				'userid'      => 'int notnull',
+				'thingid'     => 'int notnull',
+			];
+		}
 	}
 	
 
@@ -107,7 +120,8 @@
 	
 	$r = User::fetch(
 		new Condition('userid', $geoff_id),
-		new Join('Favourite', 'userid', new Join('Thing', 'thingid'))
+		new Join('Favourite', 'userid', new Join('Thing', 'thingid')),
+		true
 	);
 	if ($r->status != TMResult::Success) {
 		echo "couldn't fetch geoff & his favourites:\n";
