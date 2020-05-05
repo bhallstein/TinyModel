@@ -302,7 +302,10 @@
 			$table = &self::getTableName();
 			$cols  = &self::getTableCols();
 			
-			foreach($cols as $colname => $coltype) $q []= "a.$colname as a_{$colname}";
+			foreach($cols as $colname => $col) {
+				$s = $col->type == 'timestamp' ? "unix_timestamp(a.$colname)" : "a.$colname";
+				$q []= "$s as a_{$colname}";
+			}
 			$query_select_columns = array( implode(', ', $q) );
 			
 			$query_from_tables = array();
@@ -320,8 +323,8 @@
 				$cols  = &$cla::getTableCols();
 				
 				$q = array();
-				foreach ($cols as $colname => $coltype) {
-					$s = $coltype == 'timestamp' ? "unix_timestamp($prefix.$colname)" : "$prefix.$colname";
+				foreach ($cols as $colname => $col) {
+					$s = $col->type == 'timestamp' ? "unix_timestamp($prefix.$colname)" : "$prefix.$colname";
 					$q []= "$s as {$prefix}_{$colname}";
 				}
 				$query_select_columns []= implode(', ', $q);
