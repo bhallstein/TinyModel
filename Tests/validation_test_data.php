@@ -76,8 +76,8 @@
 	
 			// Notnull
 			[
-				'field' => 'userid', value => null,
-				'res_exp' => $resexp_invalidValue('userid'),
+				'field' => 'favourite_int', value => null,
+				'res_exp' => $resexp_invalidValue('favourite_int'),
 				'class' => User,
 				'description' => 'col notnull restriction'
 			],
