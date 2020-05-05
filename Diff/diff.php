@@ -159,7 +159,7 @@
 			'columns_modified' => 0,
 		];
 
-		$dbname = Helpers::get_db_name();
+		$dbname = Helpers::get_db_name(TinyModel::$pdo);
 		Helpers::p(Helpers::clr("Operations on DB '$dbname':", 'normal', true));
 		Helpers::p('--------------------------------------------------------');
 		if (count($diff->tables_for_removal) > 0) {
@@ -273,6 +273,7 @@
 
 	function apply_diff($diff, $pdo) {
 		$statements = [ ];
+		$errors = [ ];
 
 		// 1. Remove tables - !!
 		foreach ($diff->tables_for_removal as $t) {
@@ -316,23 +317,43 @@
 
 		foreach ($statements as $q) {
 			$st = $pdo->prepare($q);
-			ech($q, "\n");
 			$r = $st->execute();
 			if (!$r) {
-				ech(Helpers::clr("Error: ", 'red', true), "Couldn't execute the following SQL statement:\n");
-				ech('  ', $q, "\n");
-				ech("\nKeep going? "); $response = readline();
-				if (substr($response, 0, 1) != 'y') {
-					ech("OK, bye.\n\n");
-					exit;
+				$errors []= $q;
+				$should_prompt = !(
+					Helpers::get_option('--do-not-prompt-when-destroying-data') ||
+					Helpers::get_option('--silent')
+				);
+				if ($should_prompt) {
+					ech(Helpers::clr("Error: ", 'red', true), "Couldn't execute the following SQL statement:\n");
+					ech('  ', $q, "\n");
+					ech("\nKeep going? "); $response = readline();
+					if (substr($response, 0, 1) != 'y') {
+						ech("OK, bye.\n\n");
+						exit;
+					}
 				}
 			}
 		}
+
+		return $errors;
 	}
 	ech("\n");
-	apply_diff($diff, Tinymodel::$pdo);
+	$sql_errors = apply_diff($diff, Tinymodel::$pdo);
+
+	if (count($sql_errors) == 0) {
+		ech(Helpers::clr('Success!', 'green', true), "\n",
+		    'All changes were applied. Model and DB are now in sync.', "\n");
+	}
+	else {
+		echo Helpers::clr('Error!', 'red', true), "\n",
+		    'The following statements could not be executed:', "\n";
+		foreach ($sql_errors as $e)
+			echo "- '$e'\n";
+	}
 
 
 	// Options: --do-not-prompt-when-destroying-data
 	//          --silent     (implies --do-not-prompt)
-
+	//                       If SQL errors are encountered, an error message will be printed,
+	//                       EVEN IF --silent is used.
