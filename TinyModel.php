@@ -51,8 +51,7 @@
 				else if ($attrib == 'positive')     $this->rPositiveNumber = true;
 				else if ($attrib == 'notnull')      $this->rNotNull = true;
 				else if (strpos($attrib, 'maxlength') !== false) {
-					$this->maxLength = explode('=', $attrib);
-					$this->maxLength = $this->maxLength[1];
+					$this->maxLength = (int) explode('=', $attrib)[1];
 				}
 			}
 			
@@ -81,6 +80,8 @@
 				if ($this->maxLength) {
 					$pass_length = (($this->type == 'varchar' ? mb_strlen($val, 'utf8') : mb_strlen($val, 'latin1')) <= $this->maxLength);
 					$pass = $pass && $pass_length;
+					// NB: mysql 5 counts the length of a char/varchar column in characters
+					//     mysql 4 counts it in bytes
 				}
 				
 				return $pass;
@@ -105,9 +106,9 @@
 	
 	
 	class ValidationError {
-		const NonexistentColumn = 0;
-		const InvalidValue      = 4;
-		const UnknownObject     = 8;
+		const NonexistentColumn = 'NonexistentColumn';
+		const InvalidValue      = 'InvalidValue';
+		const UnknownObject     = 'UnknownObject';
 		private function __construct() { }
 	}
 	
@@ -172,10 +173,10 @@
 			$this->errors = $errors;
 		}
 		
-		const Success = 0;
-		const InvalidData = 1;
-		const InvalidConditions = 2;
-		const InternalError = 3;
+		const Success           = 'Success';
+		const InvalidData       = 'InvalidData';
+		const InvalidConditions = 'InvalidConditions';
+		const InternalError     = 'InternalError';
 	}
 	
 	
@@ -188,8 +189,8 @@
 		
 		protected static $bind_params;				// When building a prepared statement, we store params here
 		protected static function bindBindParams($st) {
-			for ($i = 0, $n = count(self::$bind_params); $i < $n; ++$i)
-				$st->bindParam($i+1, self::$bind_params[$i]);
+			foreach (self::$bind_params as $i => $p)
+				$st->bindParam($i+1, $p);
 		}
 		
 		
@@ -209,7 +210,7 @@
 			}
 			return $cols[$subclass_name];
 		}
-	  	protected static function &getTableName() {
+		public static function getTableName() {
 			static $tableNames = [ ];
 			
 			$subclass_name = get_called_class();
@@ -220,7 +221,7 @@
 			return $tableNames[$subclass_name];
 		}
 		
-		protected static function plural($s) {
+		public static function plural($s) {
 			$c = substr($s, -1);
 			$c2 = substr($s, -2, -1);
 			$c2_is_vowel = (strpos('aeiou', $c2) !== false);
@@ -311,8 +312,8 @@
 			$errors = [ ];
 			
 			foreach ($fields as $columnName => $value) {
-				$col = $class_columns[$columnName];
-				
+				$col = isset($class_columns[$columnName]) ? $class_columns[$columnName] : null;
+
 				if (!isset($col))
 					$errors[$columnName] = ValidationError::NonexistentColumn;
 				
@@ -324,9 +325,10 @@
 			}
 			
 			if ($check_completeness) {
-				foreach ($class_columns as $columnName => $col)
+				foreach ($class_columns as $columnName => $col) {
 					if ($col->rNotNull && !isset($fields[$columnName]))
 						$errors[$columnName] = ValidationError::InvalidValue;
+				}
 			}
 			
 			return $errors;
@@ -357,7 +359,9 @@
 		}
 		
 		protected function wouldDifferFromRow(&$row, $prefix) {
-			$id_column = array_shift(array_keys(self::getTableCols()));	// This is a rather brittle assumption.
+			$cols = self::getTableCols();
+			$col_names = array_keys($cols);
+			$id_column = array_shift($col_names);	// This is a rather brittle assumption.
 			return $row["{$prefix}_{$id_column}"] != $this->$id_column;
 		}
 		
@@ -431,7 +435,7 @@
 			};
 			
 			if (!is_array($joins)) $joins = [ $joins ];
-			foreach($joins as $k => &$j) {
+			foreach ($joins as $k => &$j) {
 				if (!($j instanceof Join)) unset($joins[$k]);
 				else                       $add_join($j);
 			}
@@ -641,4 +645,13 @@
 		
 	}
 
-?>
+
+	// Database diffing - runs if invoked from cmd line
+	
+	if (PHP_SAPI == 'cli') {
+		function do_diff() {
+			require_once(__DIR__ . '/Diff/diff.php');
+		}
+		register_shutdown_function('do_diff');
+	}
+
