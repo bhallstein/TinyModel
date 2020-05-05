@@ -189,7 +189,7 @@
 		
 		protected static $bind_params;				// When building a prepared statement, we store params here
 		protected static function bindBindParams($st) {
-			foreach (self::$bind_params as $i => $p)
+			foreach (self::$bind_params as $i => &$p)
 				$st->bindParam($i+1, $p);
 		}
 		
