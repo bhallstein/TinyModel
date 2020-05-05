@@ -74,8 +74,9 @@ class Helpers {
 
 		$results = $st->fetchAll();
 		$tableNames = [ ];
-		foreach ($results as $tbl)
+		foreach ($results as $tbl) {
 			$tableNames []= $tbl['table_name'];
+		}
 
 		$descr = [ ];
 

@@ -287,7 +287,7 @@
 			$cla_descr = $cla::describe();
 			foreach ($cla_descr as $colname => $str) {
 				$col = new Column($str);
-				$q_cols []= "" . Helpers::get_SQL_description($col, $colname);
+				$q_cols []= "" . Helpers::get_SQL_description($col, $colname, true);
 			}
 			$statements []= "create table `$t` ( " . implode(', ', $q_cols) . ' ) CHARSET=utf8 COLLATE utf8_unicode_ci';
 		}

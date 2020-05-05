@@ -5,27 +5,26 @@
 	 * Provide data for testing TinyModel validation
 	 *
 	 */
-	 
+
 	function getValidationTestData($type) {
 		$resexp_noCol = function($colname) use ($type) {
 			return new TMResult($type == 'condition' ? TMResult::InvalidConditions : TMResult::InvalidData,
 			                    null,
-								[ $colname => ValidationError::NonexistentColumn ]);
+			                    [ $colname => ValidationError::NonexistentColumn ]);
 		};
 		$resexp_invalidValue = function($fieldName) use ($type) {
 			return new TMResult($type == 'condition' ? TMResult::InvalidConditions : TMResult::InvalidData,
 			                    null,
-								[ $fieldName => ValidationError::InvalidValue ]);
+			                    [ $fieldName => ValidationError::InvalidValue ]);
 		};
 		$resexp_success = function() use ($type) {
 			return new TMResult(TMResult::Success,
 			                    $type == 'condition' ? [ ] : 0);
 		};
-		
+
 		$testData = [
-	
 			// Data for column type restrictions
-	
+
 			[
 				'field' => 'monkeys', value => 7,
 				'res_exp' => $resexp_noCol('monkeys', $type),
@@ -62,10 +61,10 @@
 				'class' => User,
 				'description' => 'text col, gets int'
 			],
-		
+
 
 			// Test column value restrictions
-	
+
 			// Positive
 			[
 				'field' => 'userid', value => -12,
@@ -85,7 +84,7 @@
 				'class' => User,
 				'description' => 'col positive restriction (float)'
 			],
-	
+
 			// Notnull
 			[
 				'field' => 'favourite_int', value => null,
@@ -93,7 +92,7 @@
 				'class' => User,
 				'description' => 'col notnull restriction'
 			],
-	
+
 			// Maxlength
 			[
 				'field' => 'password', value => 'I am thirty two characters long.',
@@ -125,7 +124,7 @@
 				'class' => User,
 				'description' => 'col maxlength restriction (text - bytes fail@255-utf)'
 			],
-	
+
 			// Email & URLs
 			[
 				'field' => 'email', value => 'a@ben.am',
@@ -151,7 +150,7 @@
 				'class' => User,
 				'description' => 'col url restriction (fail w/ non-url)'
 			],
-	
+
 			// Alphabetic/alphanumeric
 			[
 				'field' => 'username', value => 'ben9',
@@ -177,7 +176,7 @@
 				'class' => Thing,
 				'description' => 'col alphabetical restriction (fail w/ non-A-Z)'
 			],
-	
+
 			// Timestamps
 			[
 				'field' => 'date', value => '2014-11-06 01:01:01',
@@ -191,10 +190,10 @@
 				'class' => User,
 				'description' => 'col timestamp (fail w/ non-time-string)'
 			]
-		
+
 		];
-		
+
 		return $testData;
 	}
-	
+
 ?>
