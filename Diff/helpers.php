@@ -140,12 +140,15 @@ class Helpers {
 		return $res;
 	}
 
-	public static function get_SQL_description($tm_column, $name) {
+	public static function get_SQL_description($tm_column, $name, $adding_column = false) {
 		// type: int, float, char/varchar (these are equivalent), text, timestamp
 		// restrictions: alphabetical, alphanumeric, email, url, positive, notnull, maxlength=N
 		$s = "`$name`";
 
-		if ($tm_column->type == 'int') {
+		if ($tm_column->type == 'id') {
+			$s .= ' int unsigned auto_increment';
+		}
+		else if ($tm_column->type == 'int') {
 			$s .= ' int';
 			if ($tm_column->rPositiveNumber)  $s .= ' unsigned';
 		}
@@ -167,6 +170,11 @@ class Helpers {
 		}
 		if ($tm_column->rNotNull)  $s .= ' not null';
 		else                       $s .= ' null';
+
+		if ($adding_column) {
+			if ($tm_column->type == 'id')  $s .= ' primary key';
+		}
+
 		return $s;
 	}
 }

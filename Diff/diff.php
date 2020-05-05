@@ -69,6 +69,7 @@
 		$tbl_alterations['modify_cols'] = [ ];
 		$colmods = &$tbl_alterations['modify_cols'];
 		$type_mapping = [
+			'id'         =>  [ 'bigint', 'int' ],
 			'int'        =>  [ 'bigint', 'int', 'mediumint', 'smallint', 'tinyint' ],
 			'float'      =>  [ 'float', 'double' ],
 			'timestamp'  =>  [ 'timestamp' ],
@@ -272,7 +273,7 @@
 			// B. Add new columns
 			foreach ($details['add_cols'] as $colname) {
 				$col = new Column($cla_descr[$colname]);
-				$statements []= "alter table `$t` add column " . Helpers::get_SQL_description($col, $colname);
+				$statements []= "alter table `$t` add column " . Helpers::get_SQL_description($col, $colname, true);
 			}
 
 			// C. Modify columns

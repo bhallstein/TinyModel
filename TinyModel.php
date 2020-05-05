@@ -38,10 +38,14 @@
 			$this->rPositiveNumber = false;
 			$this->rNotNull        = false;
 			$this->maxLength       = false;
+			$this->definition_string = $definition_string;
 			
 			// Process definition string and set properties
 			if (substr($definition_string, 0, 2) == 'id') {
 				$this->type = 'id';
+				$this->rPositiveNumber = true;
+				$this->rNotNull = true;
+				return;
 			}
 			
 			$this->type = strtok($definition_string, ' ');
@@ -58,8 +62,6 @@
 					$this->maxLength = (int) explode('=', $attrib)[1];
 				}
 			}
-			
-			$this->definition_string = $definition_string;
 		}
 		
 		public function validate($val, $recent_condition = false) {

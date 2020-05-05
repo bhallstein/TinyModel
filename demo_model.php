@@ -22,7 +22,7 @@
 	class User extends TinyModel {
 		public static function describe() {
 			return [
-				'userid'   => 'int positive notnull',
+				'userid'   => 'id',
 				'muffins'  => 'int positive notnull',
 				'username' => 'varchar alphanumeric maxlength=20',
 				'email'    => 'varchar email maxlength=150',
