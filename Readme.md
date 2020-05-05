@@ -6,17 +6,34 @@ TinyModel is a PHP superclass for defining the Model layer of your web applicati
 
 ### Example 1: Authenticating a user
 
-    $conn = new PDO('mysql:host=127.0.0.1;charset=utf8;...');
-    TinyModel::setConnection($conn);
+*MyModel.php:*
     
-    $p_username = $_POST['username'];
-    $p_password = $_POST['password'];
+    require('TinyModel.php');
     
     class User extends TinyModel {
         const userid = 'int';
         const username = 'varchar alphanumeric maxlength=30 notnull';
         const password = 'char maxlength=60 notnull';
+        const email = 'varchar email maxlength=100';
     }
+    
+    class Favourite extends TinyModel {
+        const faveid = 'int';
+        const userid = 'int not null';
+        const itemid = 'int not null';
+    }
+    
+    class Item extends TinyModel {
+        const itemid = 'int';
+        const name = 'varchar maxlength=40 notnull';
+    }
+
+*login.php:*
+    
+    require('MyModel.php');
+    
+    $p_username = $_POST['username'];
+    $p_password = $_POST['password'];
     
     $res = User::fetch(
         new Condition('username', $p_username)
@@ -37,26 +54,12 @@ TinyModel is a PHP superclass for defining the Model layer of your web applicati
 
 TinyModel extracts all results into objects of the classes you create. If there are joins, it extracts joined results into sub-objects, attaching an array of them to the parent object. This can be done recursively:
 
+*Login.php:*
+    
+    require('MyModel.php');
+    
     $conn = new PDO('mysql:host=127.0.0.1;charset=utf8;...');
     TinyModel::setConnection($conn);
-    
-    class User extends TinyModel {
-        const userid = 'int';
-        const username = 'varchar alphanumeric maxlength=30 notnull';
-        const password = 'char maxlength=60 notnull';
-        const email = 'varchar email maxlength=100';
-    }
-    
-    class Favourite extends TinyModel {
-        const faveid = 'int';
-        const userid = 'int not null';
-        const itemid = 'int not null';
-    }
-    
-    class Item extends TinyModel {
-        const itemid = 'int';
-        const name = 'varchar maxlength=40 notnull';
-    }
     
     $res = User::fetch(
         new Condition('userid', $p_userid),
@@ -67,7 +70,7 @@ TinyModel extracts all results into objects of the classes you create. If there 
         echo json_encode($res->result, JSON_PRETTY_PRINT);
     }
 
-This outputs:
+This might output:
 
     [
         {
@@ -77,7 +80,7 @@ This outputs:
             "password": "~",
             "favourites": [
                 {
-                    "favouriteid": 220,
+                    "faveid": 220,
                     "userid": 269,
                     "item": 241,
                     "items": [
@@ -94,7 +97,7 @@ This outputs:
 
 ## Defining tables
 
-To configure TinyModel, you define a set of subclasses, each of which represents a table in your database. Class constants specify the name and type of each column, and optional restrictions on its values, which TinyModel validates when inserting/update values, and 
+To configure TinyModel, you define a set of subclasses, each of which represents a table in your database. Class constants specify the name and type of each column in the table, and optional restrictions on values.
 
 ### Class & table names
 
@@ -107,7 +110,7 @@ To define a column, you create a class constant with the same name as the column
 - type: one of the following: `int`, `float`, `char/varchar` (these are equivalent), `text`, `timestamp`
 - restrictions: one or more of: `alphabetical`, `alphanumeric`, `email`, `url`, `positive`, `notnull`, `maxlength=N`
 
-**Note on notnull:** ID columns are generally "not null" in the database, but should *not* be specified as such in your TinyModel column specification. This is because TinyModel needs to accept null values for ID columns at insert and update.
+**Note on notnull:** ID columns are generally "not null" in the database, but should *not* be specified as such in your TinyModel column specification. This is because `insert()` and `update()` must allow null values for ID columns.
 
 ### Example of a class
 
@@ -125,7 +128,7 @@ If you have tables `users` and `items`, you might create two classes as follows:
         const itemname = 'varchar maxlength=20 notnull';
     }
 
-You can then interacting with your tables via the three methods detailed below.
+You can then interact with these tables via the `fetch`, `update` and `insert` methods.
 
 
 ## TMResult
@@ -146,11 +149,11 @@ Fields:
 - **errors:** error data appropriate to the query and type of failure:
     - *InvalidConditions:*
 		- if there were *no* conditions, `errors` will be null
-		- if some conditions did not pass validation, an array of errors in the form `column_name => validation_error` (see below)
+		- if some conditions did not pass validation, an array of errors in the form `column_name => validation_error` (see list of validation errors below)
 	- *InvalidData:*
 		- if some updates/inserts did not pass validation_error, an array of errors in the form `column_name => validation_error`
 	- *InternalError:*
-		- the result of calling errorInfo() on the PDO statement that failed
+		- `errors` is set to the result of calling errorInfo() on the failing PDO statement
 
 **Validation Errors:** these specify the type of error that was encountered when validating insert/update data or a condition:
 
@@ -170,21 +173,19 @@ All three methods return a TMResult object encapsulating success/failure, and re
 
 Static method. Attempt to fetch items from the database.
 
-Parameters:
+*conditions*
 
-- *conditions*
-
-A Condition object, or an array of Condition objects, specifying what should be returned by the query. For instance, to only return rows where the userid is 76:
+A Condition object, or an array of Condition objects, to specify what to fetch. For instance, to only return rows where the userid is 76:
 
     new Condition('userid', 76)
 
 You can specify multiple nested conditions, and the relationships between them (`and` or `or`), by passing a nested array. For details, see Conditions. At least one valid Condition object is required for all queries.
 
-- *joins*
+*joins*
 
 An optional Join object, or an array of Join objects.
 
-- *debug*
+*debug*
 
 If true, prints out the generated `select` query before executing it.
 
@@ -202,17 +203,15 @@ If true, prints out the generated `select` query before executing it.
 
 Static method. Updates objects matching the given condition(s).
 
-Parameters:
-
-- *updates*
+*updates*
 
 An associative array of updates to perform, with the key specifying the column, and the value the new entry for that column.
 
-- *conditions*
+*conditions*
 
 A Condition object or an array of Condition objects, governing which rows in the table will be updated with new value(s).
 
-- *debug*
+*debug*
 
 If true, prints out the query before executing it.
 
@@ -291,7 +290,7 @@ When more than one column is provided for a join, *all* specified columns’ val
 
 ### Password columns
 
-In previous versions, applying a condition to a column named 'password' was handled separately - the supplied test value was concatenated with an assumed `salt` column, then SHA’d and then MD5’d, and the result tested against the stored value.
+In previous versions, applying a condition to a column named 'password' was handled separately – the supplied test value was concatenated with an assumed `salt` column, then SHA’d and then MD5’d, and the result tested against the stored value.
 
 This has changed in TinyModel 0.91. Set password fields as ordinary `char` or `varchar` columns, and use PHP’s new `password_hash()` and `password_verify()` functions to generate values/test stored values against authentication attempts. (These functions use the bcrypt algorithm, and automatically incorporate a per-user salt.)
 
