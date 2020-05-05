@@ -29,10 +29,19 @@
 	//  - However, this results in unacceptable verbosity user-side. Hence, strings.
 	
 	class Column {
+		
 		public function __construct($definition_string) {
 			// Process definition string and set Column properties
 			$this->type = strtok($definition_string, ' ');
 			if ($this->type == 'char') $this->type = 'varchar';
+			
+			$this->rAlphabetical   = false;
+			$this->rAlphanumeric   = false;
+			$this->rEmail          = false;
+			$this->rURL            = false;
+			$this->rPositiveNumber = false;
+			$this->rNotNull        = false;
+			$this->maxLength       = false;
 			
 			while (($attrib = strtok(' ')) !== false) {
 				if ($attrib == 'alphabetical')      $this->rAlphabetical = true;
@@ -178,7 +187,7 @@
 		}
 		
 		protected static $bind_params;				// When building a prepared statement, we store params here
-		protected function bindBindParams($st) {
+		protected static function bindBindParams($st) {
 			for ($i = 0, $n = count(self::$bind_params); $i < $n; ++$i)
 				$st->bindParam($i+1, self::$bind_params[$i]);
 		}
@@ -195,9 +204,9 @@
 		protected static function &getTableCols() {
 			if (self::$tableCols === null)
 				self::$tableCols = [ ];
-			
+
 			$subclass_name = get_called_class();
-			if (self::$tableCols[] === null) {
+			if (!isset(self::$tableCols[$subclass_name])) {
 				// Get the column definitions from the user subclass
 				$rc = new ReflectionClass($subclass_name);
 				$columns = $rc->getConstants();			// -> {constant_name => constant_value}
@@ -215,8 +224,8 @@
 				self::$tableNames = [ ];
 			
 			$subclass_name = get_called_class();
-			if (self::$tableNames[] === null) {
-				$class = strtolower($subclass_name);
+			if (!isset(self::$tableNames[$subclass_name])) {
+				$class = mb_strtolower($subclass_name);
 				self::$tableNames[$subclass_name] = self::plural($class);
 			}
 			return self::$tableNames[$subclass_name];
@@ -296,7 +305,7 @@
 				}
 				return $s;
 			};
-			$s .= $getStringForConditions($c);
+			$s = $getStringForConditions($c);
 			
 			return 'where ' . $s;
 		}
@@ -344,9 +353,9 @@
 				else if ($x instanceof Condition) {
 					$class_columns = self::getTableCols();
 					$colName       = $x->column;
-					$col           = $class_columns[$colName];
-					
-					if (!isset($col))
+					$col = (isset($class_columns[$colName]) ? $class_columns[$colName] : null);
+
+					if ($col === null)
 						$errors[$colName] = ValidationError::NonexistentColumn;
 					else if (!$col->validate($x->value, $x->test == Condition::Recent))
 						$errors[$colName] = ValidationError::InvalidValue;
@@ -473,7 +482,9 @@
 				$table = $cla::getTableName();
 				$prefix = $j->prefix;
 				
-				$id_column = array_shift(array_keys($cla::getTableCols()));
+				$cols = $cla::getTableCols();
+				$col_keys = array_keys($cols);
+				$id_column = array_shift($col_keys);
 				if ($row["{$prefix}_$id_column"] == null) {
 					$j->stalled = true;
 					return;
