@@ -51,7 +51,7 @@
 		}
 		
 		public function validate($val) {
-			if ($val === null && $this->rNotNull) return false;
+			if ($val === null) return !$this->rNotNull;
 			if ($this->type == 'int')	{
 				if ($this->rPositiveNumber) return is_int($val) && $val >= 0;
 				return is_int($val);
