@@ -43,7 +43,7 @@ e.g. Update username of user with userid 12 to `jimmy`:
         array('userid' => 12)
     );
 
-*Return value:* the number of affected rows, or `false` if the query failed, or an array of errors if the inserted values were did not match the field types specified as constants in the subclass definition.
+*Return value:* the number of affected rows, or `false` if the query failed, or an array of errors if the inserted values did not match the field types specified as the constants in the subclass definition.
 
 
 ## insert
@@ -54,12 +54,81 @@ Insert an object into its corresponding table.
 
 e.g. Insert a favourite for Jimmy into the `favourites` table.
 
-$f = new Favourite;
-$f->userid = 12;
-$f->thingid = $thingid;
-$f->insert();
+    $f = new Favourite;
+    $f->userid = 12;
+    $f->thingid = $thingid;
+    $f->insert();
 
-*Return value:* the id of the inserted row, or `false`if the query failed, or an array of errors if the inserted values were did not match the field types specified as constants in the subclass definition.
+*Return value:* the id of the inserted row, or `false`if the query failed, or an array of errors if the inserted values did not match the field types specified as the constants in the subclass definition.
+
+
+## Usage in a web applcation
+
+Typically, then, you define your TinyModel in a single file, like so:
+
+    require_once($pathToRoot . 'helperFunctions.php');
+    require_once('TinyModel.php');
+    DB_connect();
+    
+    /*
+     * Model.php - MyWebApp's model definitions
+     * 
+     */
+    
+    class User extends Model {
+    	const userid   = 'int';
+    	const username = 'alphanumeric';
+    	const email    = 'email';
+    	const password = 'text';
+    	const salt     = 'alphanumeric';
+    }
+    
+    class Session extends Model {
+    	const userid       = 'int';
+    	const sessiontoken = 'alphanumeric';
+    	const date         = 'timestamp';
+    }
+    
+    class Item extends Model {
+    	const itemid      = 'int';
+    	const name        = 'text';
+    	const description = 'text'; 
+    	const userid      = 'int';
+    	const categoryid  = 'int';
+    	const date        = 'int';
+    }
+    
+    class Category extends Model {
+    	const categoryid = 'int';
+    	const name       = 'text';
+    }
+
+The controller layer then generally consists of calling the `fetch`, `update` and `insert` methods of your subclasses:
+
+    /*
+     * action_EditItem.php - edit an item
+     *
+     */
+    
+    require_once($pathToRoot . 'M/TinyModel.php');
+    
+    // Authenticate
+    include('i_authenticate.php');
+    if ($auth_error) exit('noauth');
+    	
+    $itemid = (int) $_GET['i'];
+    
+    $r = Item::update(
+    	array(
+    		'name' => urldecode($_GET['name']),
+    		'description' => urldecode($_GET['desc'])
+    	),
+    	array('itemid' => $itemid, 'userid' => $auth_userid)
+    );
+    if ($r === false || is_array($r)) {
+    	// oh dear
+    }
+	// success
 
 
 ## License
