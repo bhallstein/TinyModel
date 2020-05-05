@@ -14,7 +14,7 @@
 		static protected $pdo = null;   // Global connection obj
 		private $conn = null;           // Per-class connection wrapper obj
 
-		protected $initial_fetched_data = [ ];
+		protected $expected_fetched_data = [ ];
 
 		protected static function getPDO() {
 			if (self::$pdo === null) {
@@ -90,7 +90,7 @@
 		private function tables_fetch() {
 			global $tmtest_initial_table_data;
 			foreach ($tmtest_initial_table_data as $class => $data) {
-				$this->initial_fetched_data[$class] = $class::fetch(new Condition(array_keys($data[0])[0], 0, Condition::GreaterThan))->result;
+				$this->expected_fetched_data[$class] = $class::fetch(new Condition(array_keys($data[0])[0], 0, Condition::GreaterThan))->result;
 			}
 		}
 	}

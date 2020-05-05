@@ -1,3 +1,14 @@
 #!/bin/bash
 
-phpunit ./TinyModelTest.php
+echo '<phpunit>' > phpunit.xml
+echo '  <testsuites>' >> phpunit.xml
+echo '    <testsuite name="TinyModel">' >> phpunit.xml
+echo '      <file>TinyModelTest.php</file>' >> phpunit.xml
+echo '      <file>TinyModelDiffHelpersTest.php</file>' >> phpunit.xml
+echo '    </testsuite>' >> phpunit.xml
+echo '  </testsuites>' >> phpunit.xml
+echo '</phpunit>' >> phpunit.xml
+
+phpunit
+
+rm phpunit.xml

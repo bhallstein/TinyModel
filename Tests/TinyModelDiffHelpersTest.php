@@ -16,21 +16,12 @@
 
 	class TinyModelDiffHelpersTest extends TM_Generic_DB_TestCase {
 
-		protected function getDataSet() {
-			return $this->createMySQLXMLDataSet('testdata/initial_test_data.xml');
-		}
-
-		public static function setUpBeforeClass() {
-
-		}
-
 		protected function setUp() {
-			// TinyModel::setConnection(self::getPDO());
+			TinyModel::setConnection(self::getPDO());
 			parent::setUp();
 		}
 
 		protected function tearDown() {
-			echo "\n\n";
 			parent::tearDown();
 		}
 
