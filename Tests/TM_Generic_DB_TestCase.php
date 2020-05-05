@@ -14,6 +14,8 @@
 		static protected $pdo = null;   // Global connection obj
 		private $conn = null;           // Per-class connection wrapper obj
 
+		protected $initial_fetched_data = [ ];
+
 		protected static function getPDO() {
 			if (self::$pdo === null) {
 				self::$pdo = new PDO('mysql:dbname=tinymodel_test;host=127.0.0.1', 'tm_testuser', 'pwd');
@@ -31,6 +33,7 @@
 			$this->tables_drop();
 			$this->tables_create();
 			$this->tables_fill();
+			$this->tables_fetch(); // Store initial data in variable for later use (as TMResult result array)
 		}
 
 		protected function tearDown() {
@@ -39,7 +42,8 @@
 
 		private function tables_drop() {
 			global $tmtest_initial_table_data;
-			foreach ($tmtest_initial_table_data as $tbl => $tbldata) {
+			foreach ($tmtest_initial_table_data as $class => $tbldata) {
+				$tbl = (new $class)->getTableName();
 				$r = self::getPDO()->exec("drop table if exists `$tbl`");
 				if ($r === false) {
 					echo "TM_Generic_DB_TestCase error in test_tables_drop():\n";
@@ -61,7 +65,10 @@
 
 		private function tables_fill() {
 			global $tmtest_initial_table_data;
-			foreach ($tmtest_initial_table_data as $tbl => $tbldata) {
+			foreach ($tmtest_initial_table_data as $class => $tbldata) {
+				$tm_obj = new $class;
+				$tbl = $tm_obj->getTableName();
+				// var_dump($tbl);
 				foreach ($tbldata as $row) {
 					$cols   = array_keys($row);
 					$values = array_values($row);
@@ -77,6 +84,13 @@
 						var_dump(self::getPDO()->errorInfo());
 					}
 				}
+			}
+		}
+
+		private function tables_fetch() {
+			global $tmtest_initial_table_data;
+			foreach ($tmtest_initial_table_data as $class => $data) {
+				$this->initial_fetched_data[$class] = $class::fetch(new Condition(array_keys($data[0])[0], 0, Condition::GreaterThan))->result;
 			}
 		}
 	}

@@ -35,17 +35,17 @@
 			$st = self::getPDO()->query('select * from users order by userid desc');
 			$r = $st->execute();
 			$row = $st->fetch(PDO::FETCH_ASSOC);
-			$this->wrapAssert(assertEquals, [$row, $tmtest_initial_table_data['users'][2]], 'Database loaded');
+			$this->wrapAssert(assertEquals, [$row, $tmtest_initial_table_data['User'][2]], 'Database loaded');
 		}
 
 		public function test_Fetch() {
-			// Test fetch checks it has at least 1 condition
+			// Fetch must have at least 1 condition
 			$res = User::fetch([ ]);
 			$res_exp = new TMResult(TMResult::InvalidConditions, null, null);
 			$this->wrapAssert(assertEquals, [$res, $res_exp], 'Fetch: checks conditions - fails if none');
 
 
-			// Test fetch returns expected result with and-conditions
+			// Fetch returns expected result with and-conditions
 			$res = User::fetch([
 				new Condition('favourite_int', 7),
 				new Condition('userid', 1, Condition::GreaterThan)
@@ -95,30 +95,33 @@
 			$this->wrapAssert(assertEquals, [$thingname, 'Octopus'], 'Fetch: nested join');
 		}
 
-		// public function test_Update() {
-		// 	// Test update checks it has at least 1 condition
-		// 	$res = User::update(['username'=>'something'], [ ]);
-		// 	$res_exp = new TMResult(TMResult::InvalidConditions, null, null);
-		// 	$this->wrapAssert(assertEquals, [$res, $res_exp], 'Update: checks conditions - fails if none');
-		//
-		// 	// Test updates that fail due to bad conditions do not alter DB state
-		// 	$res = User::update(['username' => 'benben'], new Condition('userid', '1'));
-		// 	$queryTable = $this->getConnection()->createQueryTable('users', 'select * from users');
-		// 	$expectedTable = $this->getDataSet()->getTable('users');
-		// 	$this->wrapAssert(assertTablesEqual, [$expectedTable, $queryTable], 'Update: failures from conditions do not affect DB');
-		//
-		// 	// Test updates that fail due to bad updates do not alter DB state
-		// 	$res = User::update(['username' => 'ben_nonalpanumeric'], new Condition('userid', 1));
-		// 	$queryTable = $this->getConnection()->createQueryTable('users', 'select * from users');
-		// 	$this->wrapAssert(assertTablesEqual, [$expectedTable, $queryTable], 'Update: failures from updates array do not affect DB');
-		//
-		// 	// Test updates that return success take effect in the DB
-		// 	$res = User::update(['username' => 'bhallstein'], new Condition('userid', 1));
-		// 	$queryTable = $this->getConnection()->createQueryTable('users', 'select * from users');
-		// 	$expectedTable = $this->createMySQLXMLDataSet('testdata/test_data_after_update.xml')->getTable('users');
-		// 	$this->wrapAssert(assertTablesEqual, [$expectedTable, $queryTable], 'Update: expected effect when successful');
-		// }
-		//
+		public function test_Update() {
+			global $tmtest_initial_table_data;
+
+			// Update checks it has at least 1 condition
+			$res = User::update(['username'=>'something'], [ ]);
+			$res_exp = new TMResult(TMResult::InvalidConditions, null, null);
+			$this->wrapAssert(assertEquals, [$res, $res_exp], 'Update: checks conditions - fails if none');
+
+			// Updates that fail due to bad conditions do not alter DB state
+			$res = User::update(['username' => 'benben'], new Condition('userid', 'muffins'));
+			$this->wrapAssert(assertEquals, [$res->status, TMResult::InvalidConditions], 'Update: fails on bad conditions');
+			$res = User::fetch(new Condition('userid', 0, Condition::GreaterThan));
+			$this->wrapAssert(assertEquals, [$res->result, $this->initial_fetched_data['User']], 'Update: bad conditions do not alter DB');
+
+			// Updates that fail due to bad values do not alter DB state
+			$res = User::update(['username' => 'ben_nonalpanumeric'], new Condition('userid', 1));
+			$this->wrapAssert(assertEquals, [$res->status, TMResult::InvalidData], 'Update: fails on bad values');
+			$res = User::fetch(new Condition('userid', 0, Condition::GreaterThan));
+			$this->wrapAssert(assertEquals, [$res->result, $this->initial_fetched_data['User']], 'Update: bad values do not alter DB');
+
+			// Test updates that return success take effect in the DB
+			$res = User::update(['username' => 'bhallstein'], new Condition('userid', 2));
+			$this->wrapAssert(assertEquals, [$res->status, TMResult::Success], 'Update: succeeds when parameters OK');
+			$res = User::fetch(new Condition('userid', 2));
+			$this->wrapAssert(assertEquals, [$res->result[0]->username, 'bhallstein'], 'Update: successful updates applied as expected');
+		}
+
 		// public function test_Insert() {
 		// 	// Test inserts that fail due to bad values do not alter DB
 		// 	$t = new Thing;

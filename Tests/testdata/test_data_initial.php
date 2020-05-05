@@ -25,7 +25,7 @@
 	];
 
 	$tmtest_initial_table_data = [
-		'favourites' => [
+		'Favourite' => [
 			[
 				'favouriteid' => 1,
 				'userid'      => 1,
@@ -43,7 +43,7 @@
 			],
 		],
 
-		'things' => [
+		'Thing' => [
 			[
 				'thingid'   => 1,
 				'thingname' => 'Elephant',
@@ -62,7 +62,7 @@
 			],
 		],
 
-		'users' => [
+		'User' => [
 			[
 				'userid'          => '2',
 				'username'        => 'ben',
