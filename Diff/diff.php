@@ -9,7 +9,7 @@
 	require_once(__DIR__ . '/helpers.php');
 
 	if (!TinyModel::$pdo) {
-		Helpers::p(clr('Error:', 'red', true),  " TinyModel::$pdo is null\n");
+		Helpers::p(clr('Error:', 'red'),  " TinyModel::$pdo is null\n");
 		return;
 	}
 
@@ -27,8 +27,7 @@
 
 	function ech() {
 		if (!Helpers::get_option('--silent')) {
-			foreach (func_get_args() as $a)
-				echo $a;
+			foreach (func_get_args() as $a) { echo $a; }
 		}
 	}
 	function p($x) {
@@ -160,12 +159,12 @@
 		];
 
 		$dbname = Helpers::get_db_name(TinyModel::$pdo);
-		Helpers::p(Helpers::clr("Operations on DB '$dbname':", 'normal', true));
+		Helpers::p(Helpers::clr("Operations on DB '$dbname':", 'normal'));
 		Helpers::p('--------------------------------------------------------');
 		if (count($diff->tables_for_removal) > 0) {
 			Helpers::p("Tables to be removed: ");
 			foreach ($diff->tables_for_removal as $t)
-				Helpers::p('  - ', Helpers::clr($t, 'red', true));
+				Helpers::p('  - ', Helpers::clr($t, 'red'));
 		}
 		if (count($diff->classes_for_addition) > 0) {
 			$tblnames = array_map(
@@ -173,21 +172,21 @@
 				$diff->classes_for_addition
 			);
 			Helpers::p('Tables to be created:');
-			foreach ($tblnames as $t) Helpers::p('  - ', Helpers::clr($t, 'green', true));
+			foreach ($tblnames as $t) Helpers::p('  - ', Helpers::clr($t, 'green'));
 		}
 		if (is_array($diff->table_alterations) && count($diff->table_alterations) > 0) {
 			Helpers::p('Tables requiring alterations:');
 
 			foreach ($diff->table_alterations as $cla => $details) {
 				$t = $cla::getTableName();
-				Helpers::p('  - ', Helpers::clr($t, 'normal', true), ':');
+				Helpers::p('  - ', Helpers::clr($t, 'normal'), ':');
 
 				if (isset($details['remove_cols']) && count($details['remove_cols']) > 0) {
 					$warnings['columns_removed'] += count($details['remove_cols']);
-					Helpers::p("      columns to remove: ", Helpers::implcol($details['remove_cols'], 'red', true));
+					Helpers::p("      columns to remove: ", Helpers::implcol($details['remove_cols'], 'red'));
 				}
 				if (isset($details['add_cols']) && count($details['add_cols']) > 0)
-					Helpers::p("      columns to create: ", Helpers::implcol($details['add_cols'], 'green', true));
+					Helpers::p("      columns to create: ", Helpers::implcol($details['add_cols'], 'green'));
 
 				if (isset($details['modify_cols']) && count($details['modify_cols']) > 0) {
 					$warnings['columns_modified'] += count($details['modify_cols']);
@@ -195,7 +194,7 @@
 					$pad_length = max(array_map(function($x) { return mb_strlen($x); }, array_keys($details['modify_cols'])));
 					foreach ($details['modify_cols'] as $colname => $mdfcn) {
 						Helpers::p("         ", str_repeat(' ', $pad_length - mb_strlen($colname)),
-								     Helpers::clr($colname, 'yellow', true), "  ",
+								     Helpers::clr($colname, 'yellow'), "  ",
 									  Helpers::get_modification_expln($mdfcn));
 					}
 				}
@@ -213,7 +212,7 @@
 	);
 	if (!$modifs_present) {
 		$dbname = Helpers::get_db_name(Tinymodel::$pdo);
-		Helpers::p(Helpers::clr('Nothing to do!', 'green', true), " Model and '$dbname' are in sync.");
+		Helpers::p(Helpers::clr('Nothing to do!', 'green'), " Model and '$dbname' are in sync.");
 		return;
 	}
 
@@ -222,7 +221,7 @@
 
 	$warnings = print_diff_and_get_warnings($diff);
 	if ($dangerous_modifs_present = (max($warnings) > 0)) {
-		ech(Helpers::clr("\nWARNING:\n", 'red', true));
+		ech(Helpers::clr("\nWARNING:\n", 'red'));
 		ech("Proceeding from here will");
 		$r_tbl = $warnings['tables_removed'] > 0;
 		$r_col = $warnings['columns_removed'] > 0;
@@ -258,7 +257,7 @@
 				ech("OK, bye.\n\n");
 				exit;
 			}
-			ech(Helpers::clr('Really sure? ', 'normal', true));
+			ech(Helpers::clr('Really sure? ', 'normal'));
 			$response = readline();
 			if (substr($response, 0, 1) != 'y') {
 				ech("OK, bye.\n\n");
@@ -325,7 +324,7 @@
 					Helpers::get_option('--silent')
 				);
 				if ($should_prompt) {
-					ech(Helpers::clr("Error: ", 'red', true), "Couldn't execute the following SQL statement:\n");
+					ech(Helpers::clr("Error: ", 'red'), "Couldn't execute the following SQL statement:\n");
 					ech('  ', $q, "\n");
 					ech("\nKeep going? "); $response = readline();
 					if (substr($response, 0, 1) != 'y') {
@@ -342,11 +341,11 @@
 	$sql_errors = apply_diff($diff, Tinymodel::$pdo);
 
 	if (count($sql_errors) == 0) {
-		ech(Helpers::clr('Success!', 'green', true), "\n",
+		ech(Helpers::clr('Success!', 'green'), "\n",
 		    'All changes were applied. Model and DB are now in sync.', "\n");
 	}
 	else {
-		echo Helpers::clr('Error!', 'red', true), "\n",
+		echo Helpers::clr('Error!', 'red'), "\n",
 		    'The following statements could not be executed:', "\n";
 		foreach ($sql_errors as $e)
 			echo "- '$e'\n";

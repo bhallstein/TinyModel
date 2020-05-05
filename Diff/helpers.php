@@ -168,8 +168,10 @@ class Helpers {
 
 
 	// Command-line output
+	const REGULAR = false;
+	const BOLD = true;
 
-	public static function clr($str, $col, $bold = false) {
+	public static function clr($str, $col, $bold = self::BOLD) {
 		static $colcodes = [
 			'red'    => ';31',    'green'  => ';32',
 			'yellow' => ';33',    'blue'   => ';34',
@@ -196,8 +198,8 @@ class Helpers {
 		$s = func_get_args();
 		$last = array_pop($s);
 		$suppress_newline = false;
-		if (is_bool($last)) {  $suppress_newline = true;  }
-		else                {  $s []= $last; }
+		if (is_bool($last)) {  $suppress_newline = $last;  }
+		else                {  $s []= $last;  }
 		$s = implode('', $s);
 		$s = explode("\n", $s);
 		foreach ($s as $l) self::echo_line($l);
@@ -212,8 +214,8 @@ class Helpers {
 		};
 		if (self::$p == -1) {
 			echo '--------------------', "\n",
-			     self::clr('TinyModel', 'blue', true), ' / ',
-			     Helpers::clr('DB diff', 'normal', true),  ":";
+			     self::clr('TinyModel', 'blue'), ' / ',
+			     Helpers::clr('DB diff', 'normal'),  ":";
 			for ($i = 0; $i < $h_padding; ++$i) echo ' ';
 			echo $s, "\n";
 			// echo '                    ';
