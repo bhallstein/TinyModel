@@ -28,8 +28,8 @@ Some info:
 		}
 	?>
 	
-	After the (slightly cursory) update/insert tests, we can then check table state against
-	two more XML files (which are near copies of the first):
+	So to check update/insert has the desired effect, we can then check table state against two
+	more XML files (which are near copies of the first), e.g.:
 	
 	<?
 		$queryTable = $this->getConnection()->createQueryTable('things', 'select * from things');
@@ -59,11 +59,11 @@ Some info:
 	
 	To better sectionalise everything, I've used PHPInfo's usually individual test functions to
 	wrap multiple tests. The progress of individual tests is then indicated by using the wrapAssert()
-	method, which prints a description underneath PHPInfo's not very descriptive '.' of the actual
-	test(s) being performed.
+	method, which prints a description of the actual test(s) being performed underneath PHPInfo's usual
+	not very descriptive output of '.'.
 	
 	This gives more, better info on what tests are being run, and splits testing up into sections,
-	which I find preferable to the alternative of a zillion little functions.
+	which I find preferable to writing a zillion little functions in this case.
 
 	Ben Hallstein, Nov 2014
 	:)

@@ -25,6 +25,9 @@
 	//   type: int float char varchar text timestamp
 	//   restrictions: alphabetical alphanumeric email url positive notnull maxlength=N
 	
+	// Less stringly-typed way of doing this: bit field/array of TM-defined values.
+	//  - However, this results in unacceptable verbosity user-side. Hence, strings.
+	
 	class Column {
 		public function __construct($definition_string) {
 			// Process definition string and set Column properties
@@ -210,9 +213,10 @@
 				$class = strtolower($subclass_name);
 				$c = substr($class, -1);
 				$c2 = substr($class, -2, -1);
-				if ($c == 'y' && !preg_match('/[aeiou]+/', $c2))
+				$c2_vowel = preg_match('/[aeiou]+/', $c2);
+				if ($c == 'y' && !$c2_vowel)
 					self::$tableNames[$subclass_name] = substr($class, 0, -1) . 'ies';
-				else if ($c == 'h')
+				else if (($c == 's' && $c2_vowel) || $c == 'h')
 					self::$tableNames[$subclass_name] = $class . 'es';
 				else self::$tableNames[$subclass_name] = $class . 's';
 			}
@@ -438,6 +442,7 @@
 			$r = $st->execute();
 			if ($r === false) {
 				$res = new TMResult(TMResult::InternalError);
+				$res->errors = $st->errorInfo();
 				return $res;
 			}
 			
@@ -568,6 +573,7 @@
 			}
 			else {
 				$res = new TMResult(TMResult::InternalError);
+				$res->errors = $st->errorInfo();
 				return $res;
 			}
 		}
@@ -618,6 +624,7 @@
 			}
 			else {
 				$res = new TMResult(TMResult::InternalError);
+				$res->errors = $st->errorInfo();
 				return $res;
 			}
 		}
