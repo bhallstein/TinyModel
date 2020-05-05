@@ -117,9 +117,9 @@
 			if ($prefix !== '') $prefix .= '.';
 			
 			if ($this->test == self::Recent) {
-				// period should be stored in val
+				// period should be stored in `value`
 				$s = 'unix_timestamp(now()) - unix_timestamp(' .
-						mysql_real_escape_string($this->column) . ') < ' . (int)$this->val;
+						mysql_real_escape_string($this->column) . ') < ' . (int)$this->value;
 			}
 			else if ($this->column === 'password') {
 				$s = "{$prefix}password = md5(sha(concat(salt, '" .
@@ -202,6 +202,7 @@
 		//    - the row has a prefix, e.g. a_users
 		//    - for each column defined by this class, attempt to fetch it from row
 		//    - return an object or null if nothing found
+		
 		static function objFromRow($row, $prefix) {
 			$cols = array_keys(self::getTableCols());
 			$new_obj = new static();
@@ -437,7 +438,7 @@
 		//    - false on db error
 		//    - the number of altered rows on success
 		
-		static function update($updates, $conditions) {
+		static function update($updates, $conditions, $debug = false) {
 			
 			if (!is_array($conditions) && ! $conditions instanceof Condition)
 				return false;
@@ -457,6 +458,7 @@
 				// was passed in.
 			
 			$q = "update $t_name $set $cond";
+			if ($debug) var_dump($q);
 			$r = mysql_query($q);
 			return ($r ? mysql_affected_rows() : false);
 		}

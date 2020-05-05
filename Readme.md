@@ -61,16 +61,16 @@ You can specify multiple nested conditions, and the relationships between them (
 
 An optional Join object, or an array of Join objects, specifying joins to perform from results in this table to further tables.
 
+- *debug*
+
+If true, prints out the generated `select` query before executing it. Defaults to `false`.
+
 *e.g.* Fetch user(s) with id 76, joined to any favourites, joined to those favourites themselves:
 
     User::fetch(
         new Condition('userid', 76),
         new Join('Favourite', 'userid', new Join('Thing', 'thingid')))
     );
-
-- *debug*
-
-If true, prints out the generated `select` query before executing it. Defaults to `false`.
 
 
 ### update
@@ -92,6 +92,10 @@ An associative array of updates to perform, where the key specifies the column, 
 - *conditions*
 
 A Condition object, or an array of Condition objects governing which rows in the table will be updated with new value(s).
+
+- *debug*
+
+If true, prints out the query before executing it. Defaults to `false`.
 
 *e.g.* Update username of user with userid 12 to ‘jimmy’:
 
