@@ -22,13 +22,14 @@
 	
 	
 	// Column definition string: 'type [restrictions]'
-	//   type: int float varchar text timestamp
+	//   type: int float char varchar text timestamp
 	//   restrictions: alphabetical alphanumeric email url positive notnull maxlength=N
 	
 	class Column {
 		public function __construct($definition_string) {
 			// Process definition string and set Column properties
 			$this->type = strtok($definition_string, ' ');
+			if ($this->type == 'char') $this->type = 'varchar';
 			
 			while (($attrib = strtok(' ')) !== false) {
 				if ($attrib == 'alphabetical')      $this->rAlphabetical = true;
@@ -100,7 +101,7 @@
 		const LessThanOrEquals    = 3;
 		const GreaterThan         = 4;
 		const GreaterThanOrEquals = 5;
-		const Recent = 6;
+		const Recent              = 6;
 		
 		const _And = 20;
 		const _Or = 21;
@@ -117,14 +118,9 @@
 			if ($prefix !== '') $prefix .= '.';
 			
 			if ($this->test == self::Recent) {
-				// period should be stored in `value`
+				// recency period is stored in `value`
 				$s = 'unix_timestamp(now()) - unix_timestamp(' .
 						mysql_real_escape_string($this->column) . ') < ' . (int)$this->value;
-			}
-			else if ($this->column === 'password') {
-				$s = "{$prefix}password = md5(sha(concat(salt, '" .
-						mysql_real_escape_string($this->value) .
-						"')))";
 			}
 			else {
 				$s = $prefix . mysql_real_escape_string($this->column) .

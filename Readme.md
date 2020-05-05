@@ -14,7 +14,7 @@ With TinyModel, the name of the table is the (lowercase) plural of the name of t
 
 To define a column, you create a class constant with the same name as the column, and initialize it with a *column specification string*, with the format `"type [restrictions]"`:
 
-- type: one of the following: `int`, `float`, `varchar`, `text`, `timestamp`
+- type: one of the following: `int`, `float`, `char/varchar` (these are equivalent), `text`, `timestamp`
 - restrictions: one or more of: `alphabetical`, `alphanumeric`, `email`, `url`, `positive`, `notnull`, `maxlength=N`
 
 ### Example of a class
@@ -168,9 +168,9 @@ The constructor has the arguments:
 
 ### Password columns
 
-TinyModel handles columns named `password` automatically. It assumes the table has another column named `salt`. When a Condition is encountered with the column name `password`, TinyModel tests the supplied value against `md5(sha(concat(salt, $value)))`.
+In previous versions, applying a condition to a column named 'password' was handled separately - the supplied test value was concatenated with an assumed `salt` column, then SHA’d and then MD5’d, and the result tested against the stored value.
 
-At present, this is the only way passwords are handled in TinyModel. It has the benefit of preventing a web app from storing passwords in retrievable form. A system to allow a dev-customisable hashing function for passwords is a possibility for the future.
+This has changed in TinyModel 0.91. Set password fields as ordinary `char` or `varchar` columns, and use PHP’s new `password_hash()` and `password_verify()` functions to generate values/test stored values against authentication attempts. (These functions use the high-quality bcrypt algorithm, and automatically incorporate a per-user salt.)
 
 
 ## Usage in a web application
