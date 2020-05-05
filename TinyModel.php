@@ -29,10 +29,19 @@
 	//  - However, this results in unacceptable verbosity user-side. Hence, strings.
 	
 	class Column {
+		
 		public function __construct($definition_string) {
 			// Process definition string and set Column properties
 			$this->type = strtok($definition_string, ' ');
 			if ($this->type == 'char') $this->type = 'varchar';
+			
+			$this->rAlphabetical   = false;
+			$this->rAlphanumeric   = false;
+			$this->rEmail          = false;
+			$this->rURL            = false;
+			$this->rPositiveNumber = false;
+			$this->rNotNull        = false;
+			$this->maxLength       = false;
 			
 			while (($attrib = strtok(' ')) !== false) {
 				if ($attrib == 'alphabetical')      $this->rAlphabetical = true;
@@ -195,7 +204,8 @@
 		protected static function &getTableCols() {
 			if (self::$tableCols === null)
 				self::$tableCols = [ ];
-			if (self::$tableCols[$subclass_name = get_called_class()] === null) {
+			$subclass_name = get_called_class();
+			if (!isset(self::$tableCols[$subclass_name])) {
 				// Get the column definitions from the user subclass
 				$rc = new ReflectionClass($subclass_name);
 				$columns = $rc->getConstants();			// -> {constant_name => constant_value}
@@ -211,8 +221,9 @@
 	  	protected static function &getTableName() {
 			if (self::$tableNames === null)
 				self::$tableNames = [ ];
-			if (self::$tableNames[$subclass_name = get_called_class()] === null) {
-				$class = strtolower($subclass_name);
+			$subclass_name = get_called_class();
+			if (!isset(self::$tableNames[$subclass_name])) {
+				$class = mb_strtolower($subclass_name);
 				self::$tableNames[$subclass_name] = self::plural($class);
 			}
 			return self::$tableNames[$subclass_name];
@@ -292,7 +303,7 @@
 				}
 				return $s;
 			};
-			$s .= $getStringForConditions($c);
+			$s = $getStringForConditions($c);
 			
 			return 'where ' . $s;
 		}
