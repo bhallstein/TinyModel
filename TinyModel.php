@@ -178,7 +178,7 @@
 		}
 		
 		protected static $bind_params;				// When building a prepared statement, we store params here
-		protected function bindBindParams($st) {	// :P
+		protected function bindBindParams($st) {
 			for ($i = 0, $n = count(self::$bind_params); $i < $n; ++$i)
 				$st->bindParam($i+1, self::$bind_params[$i]);
 		}
@@ -195,7 +195,9 @@
 		protected static function &getTableCols() {
 			if (self::$tableCols === null)
 				self::$tableCols = [ ];
-			if (self::$tableCols[$subclass_name = get_called_class()] === null) {
+			
+			$subclass_name = get_called_class();
+			if (self::$tableCols[] === null) {
 				// Get the column definitions from the user subclass
 				$rc = new ReflectionClass($subclass_name);
 				$columns = $rc->getConstants();			// -> {constant_name => constant_value}
@@ -211,7 +213,9 @@
 	  	protected static function &getTableName() {
 			if (self::$tableNames === null)
 				self::$tableNames = [ ];
-			if (self::$tableNames[$subclass_name = get_called_class()] === null) {
+			
+			$subclass_name = get_called_class();
+			if (self::$tableNames[] === null) {
 				$class = strtolower($subclass_name);
 				self::$tableNames[$subclass_name] = self::plural($class);
 			}
