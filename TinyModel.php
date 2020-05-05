@@ -100,11 +100,10 @@
 		const LessThanOrEquals    = 3;
 		const GreaterThan         = 4;
 		const GreaterThanOrEquals = 5;
+		const Recent = 6;
 		
 		const _And = 20;
 		const _Or = 21;
-		
-		const Recent = 50;
 		
 		public function __construct($col, $val, $test = self::Equals, $conjoinment = self::_And) {
 			$this->column = $col;
@@ -117,10 +116,10 @@
 			// Return the condition as a string
 			if ($prefix !== '') $prefix .= '.';
 			
-			if ($this->value == self::Recent) {
-				// period should be stored in test
+			if ($this->test == self::Recent) {
+				// period should be stored in val
 				$s = 'unix_timestamp(now()) - unix_timestamp(' .
-						escape_string($this->column) . ') < ' . (int)$this->test;
+						escape_string($this->column) . ') < ' . (int)$this->val;
 			}
 			else if ($this->column === 'password') {
 				$s = "{$prefix}password = md5(sha(concat(salt, '" .
@@ -433,7 +432,7 @@
 		// Update: update a value in the table
 		//  - returns:
 		//    - an array of errors if the updated values fail validation
-		// 	  - false on db error
+		//    - false on db error
 		//    - the number of altered rows on success
 		
 		static function update($updates, $conditions) {
@@ -463,9 +462,9 @@
 		
 		// Insert: insert the object into the table
 		//  - returns:
-		// 	  - an array of errors if illegal values encountered
-		// 	  - false on db error
-		//	  - the insert id on success
+		//    - an array of errors if illegal values encountered
+		//    - false on db error
+		//    - the insert id on success
 		
 		function insert() {
 			$t_name = &self::getTableName();

@@ -117,6 +117,54 @@ Instance method. Insert an object into its corresponding table. You first constr
     $f->insert();
 
 
+### Condition objects
+
+Condition objects are used to control which rows should be fetched or updated. The constructor takes the following values:
+
+- *column:* The name of the column the condition applies to
+- *value:* The value to test against
+- *test:* One of the following constants. The default is Equals.
+	- Condition::Equals
+	- NotEquals
+	- LessThan
+	- LessThanOrEquals
+	- GreaterThan
+	- GreaterThanOrEquals
+	- Recent
+		- This is used to secify a timestamp column with a time value up to a certain time in the past. When the “Recent” condition is used, the value field specifies the number of seconds before the current timestamp that is to be considered a match.
+- *"conjoinment:"* You can pass a nested array of Conditions to the `fetch` or `update` methods, allowing you to specify a set of conditions such as `where userid < 76 or (email = 'a@b.com' and username = 'geoff'). This would be represented as follows:
+
+    User::fetch(
+    	array(
+    		new Condition('userid', 76, Condition::LessThan, Condition::_Or),
+    		array(
+    			new Condition('email', 'a@b.com'),
+    			new Condition('username', 'geoff')
+    		)
+    	)
+    );
+
+The default conjoinment is `Condition::_And`
+    
+    
+### Join objects
+
+You can pass a Join object or an array of Join objects to a call to `fetch`, to (left) join the results returned by this table to other tables.
+
+The constructor has the arguments:
+
+- *class:* The name of the class – *not* the table name. For instance, `'User'`.
+- *columns:* The name of the column(s) on which to join, as a string. If an array of strings is passed, each specified column must contain the same datum in both tables for the rows to be joined.
+- *joins:* Optionally, one or more further joins to perform off the joined table.
+
+
+### Password columns
+
+TinyModel handles columns named `password` automatically. It assumes the table has another column named `salt`. When a Condition is encountered with the column name `password`, TinyModel tests the supplied value against `md5(sha(concat(salt, $value)))`.
+
+At present, this is the only way passwords are handled in TinyModel. It has the benefit of preventing a web app from storing passwords in retrievable form. A system to allow a dev-customisable MySQL function for handling passwords is a possibility for the future.
+
+
 ## Usage in a web application
 
 For a simple web app, you might typically define your TinyModel subclasses in a single file, thereby specifying the tables you wish to communicate with.
