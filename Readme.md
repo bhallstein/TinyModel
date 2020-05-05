@@ -40,7 +40,7 @@ Interacting with these tables is then very straightforward, via the three method
 
 ### fetch
 
-`fetch($conditions, $joins)`
+`fetch($conditions, $joins, $debug)`
 
 Static method. Attempt to fetch items from the database. Return values:
 
@@ -57,8 +57,6 @@ A Condition object, or an array of Condition objects, specifying what should be 
 
 You can specify multiple nested conditions, and the relationships between them (`and` or `or`), by passing a nested array. For details, see below under Conditions. At least one valid Condition object is required.
 
-Static method. Returns one ore more objects matching the given condition(s). Any successful joins will be represented as sub-objects of their parents.
-
 - *joins*
 
 An optional Join object, or an array of Join objects, specifying joins to perform from results in this table to further tables.
@@ -69,6 +67,10 @@ An optional Join object, or an array of Join objects, specifying joins to perfor
         new Condition('userid', 76),
         new Join('Favourite', 'userid', new Join('Thing', 'thingid')))
     );
+
+- *debug*
+
+If true, prints out the generated `select` query before executing it. Defaults to `false`.
 
 
 ### update
@@ -164,7 +166,7 @@ The constructor has the arguments:
 
 TinyModel handles columns named `password` automatically. It assumes the table has another column named `salt`. When a Condition is encountered with the column name `password`, TinyModel tests the supplied value against `md5(sha(concat(salt, $value)))`.
 
-At present, this is the only way passwords are handled in TinyModel. It has the benefit of preventing a web app from storing passwords in retrievable form. A system to allow a dev-customisable MySQL function for handling passwords is a possibility for the future.
+At present, this is the only way passwords are handled in TinyModel. It has the benefit of preventing a web app from storing passwords in retrievable form. A system to allow a dev-customisable hashing function for passwords is a possibility for the future.
 
 
 ## Usage in a web application
@@ -174,6 +176,7 @@ For a simple web app, you might typically define your TinyModel subclasses in a 
 The controller layer includes this file, and can then interact with the subclasses, making calls to TinyModel’s `fetch`, `update` and `insert` methods.
 
 For a functioning example, see the file `demo.php`. (You will need to need to create the relevant database and tables.)
+
 
 ## License
 

@@ -9,8 +9,8 @@
 	class User extends TinyModel {
 		const userid   = 'int notnull';
 		const username = 'varchar alphanumeric maxlength=20';
-		const email    = 'varchar email';
-		const password = 'varchar text';
+		const email    = 'varchar email maxlength=150';
+		const password = 'varchar maxlength=32';
 		const salt     = 'varchar alphanumeric';
 		const date     = 'timestamp';
 	}
