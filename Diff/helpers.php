@@ -40,21 +40,27 @@ class Helpers {
 		return implode(' ', $out);
 	}
 
+	public static function get_db_name($pdo) {
+		static $dbname = null;
+		if ($dbname == null) {
+			$st = $pdo->prepare('select database()');
+			$r = $st->execute();
+			if (!$r) {
+				echo "ERROR: couldn't get database name\n";
+				return null;
+			}
+			$results = $st->fetchAll();
+			if (count($results) != 1) {
+				echo "ERROR: couldn't get database name\n";
+				return null;
+			}
+			$dbname = $results[0][0];
+		}
+		return $dbname;
+	}
 
-	// Get tables in DB
 	public static function get_table_descriptions_for_DB($pdo) {
-		$st = $pdo->prepare('select database()');
-		$r = $st->execute();
-		if (!$r) {
-			echo "ERROR: couldn't get database name\n";
-			return;
-		}
-		$results = $st->fetchAll();
-		if (count($results) != 1) {
-			echo "ERROR: couldn't get database name\n";
-			return;
-		}
-		$dbname = $results[0][0];
+		$dbname = self::get_db_name($pdo);
 
 		// Get list of table names
 		$st = $pdo->prepare('select table_name from information_schema.tables where table_schema=:db');

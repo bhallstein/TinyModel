@@ -159,7 +159,8 @@
 			'columns_modified' => 0,
 		];
 
-		Helpers::p(Helpers::clr("Results:", 'normal', true));
+		$dbname = Helpers::get_db_name();
+		Helpers::p(Helpers::clr("Operations on DB '$dbname':", 'normal', true));
 		Helpers::p('--------------------------------------------------------');
 		if (count($diff->tables_for_removal) > 0) {
 			Helpers::p("Tables to be removed: ");
@@ -211,7 +212,8 @@
 		count($diff->table_alterations) > 0
 	);
 	if (!$modifs_present) {
-		Helpers::p(Helpers::clr('Nothing to do!', 'green', true), "\n");
+		$dbname = Helpers::get_db_name(Tinymodel::$pdo);
+		Helpers::p(Helpers::clr('Nothing to do!', 'green', true), " Model and '$dbname' are in sync.");
 		return;
 	}
 
