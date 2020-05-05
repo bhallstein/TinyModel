@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<mysqldump xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<database name="tinymodel_test">
+	<table_data name="favourites">
+	<row>
+		<field name="favouriteid">1</field>
+		<field name="userid">1</field>
+		<field name="thing_id">1</field>
+	</row>
+	<row>
+		<field name="favouriteid">2</field>
+		<field name="userid">1</field>
+		<field name="thing_id">4</field>
+	</row>
+	<row>
+		<field name="favouriteid">3</field>
+		<field name="userid">2</field>
+		<field name="thing_id">3</field>
+	</row>
+	</table_data>
+	<table_data name="things">
+	<row>
+		<field name="thingid">1</field>
+		<field name="thingname">Elephant</field>
+	</row>
+	<row>
+		<field name="thingid">2</field>
+		<field name="thingname">Monkey</field>
+	</row>
+	<row>
+		<field name="thingid">3</field>
+		<field name="thingname">Octopus</field>
+	</row>
+	<row>
+		<field name="thingid">4</field>
+		<field name="thingname">Petrel</field>
+	</row>
+	<row>
+		<field name="thingid">5</field>
+		<field name="thingname">Stoat</field>
+	</row>
+	</table_data>
+	<table_data name="users">
+	<row>
+		<field name="userid">1</field>
+		<field name="username">ben</field>
+		<field name="email">ben@ben.am</field>
+		<field name="password">60b725f10c9c85c70d97880dfe8191b3</field>
+		<field name="date">2014-11-06 18:15:17</field>
+		<field name="favourite_int">7</field>
+		<field name="favourite_float">0.1</field>
+		<field name="biography">I would make an absolutely terrible giraffe.</field>
+		<field name="homepage">http://ben.am</field>
+	</row>
+	<row>
+		<field name="userid">2</field>
+		<field name="username">emilia</field>
+		<field name="email">emilia@somewhere.com</field>
+		<field name="password">3b5d5c3712955042212316173ccf37be</field>
+		<field name="date">2014-11-06 18:15:17</field>
+		<field name="favourite_int">7</field>
+		<field name="favourite_float">0.2</field>
+		<field name="biography">Pioneer of space travel.</field>
+		<field name="homepage">http://www.emilia-jet-propulsion-ltd.co.uk</field>
+	</row>
+	<row>
+		<field name="userid">3</field>
+		<field name="username">mrperson</field>
+		<field name="email">person@somewhere.com</field>
+		<field name="password">2cd6ee2c70b0bde53fbe6cac3c8b8bb1</field>
+		<field name="date">2014-11-06 18:15:17</field>
+		<field name="favourite_int">9</field>
+		<field name="favourite_float">0.3</field>
+		<field name="biography">This string contains a sentence, the contents of which has been intentionally designed in order that the total length of the string, including a final punctuation mark in the form of a period, is no more or less than two hundred and fifty five characters.</field>
+		<field name="homepage">http://www.mrperson-12345.com</field>
+	</row>
+	</table_data>
+</database>
+</mysqldump>

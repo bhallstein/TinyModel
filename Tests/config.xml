@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+	<phpunit>
+		<php>
+			<var name="DB_DSN" value="mysql:dbname=tinymodel_test;host=127.0.0.1" />
+			<var name="DB_USER" value="tm_testuser" />
+			<var name="DB_PASSWD" value="pwd" />
+			<var name="DB_DBNAME" value="tinymodel_test" />
+		</php>
+	</phpunit>

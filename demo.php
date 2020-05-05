@@ -118,7 +118,7 @@
 	$geoff_faves = $r->result[0]->favourites;
 	$things = $geoff_faves[0]->things;
 	echo "- Name of first favourited object: ", $things[0]->thingname;
-	echo ":) \n";
+	echo " :) \n";
 	
 	echo '</pre>';
 ?>

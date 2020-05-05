@@ -54,24 +54,27 @@
 				return is_int($val);
 			}
 			else if ($this->type == 'float') {
+				if (is_int($val)) $val = (float) $val;
 				if ($this->rPositiveNumber) return is_float($val) && $val >= 0;
 				return is_float($val);
 			}
 			else if ($this->type == 'varchar' || $this->type == 'text') {
 				if (!is_string($val)) return false;
 				$pass = true;
-				if ($this->rAlphabet)     $pass = mb_ereg_match('^[a-zA-Z]+$', $val);
+				if ($this->rAlphabetical)      $pass = mb_ereg_match('^[a-zA-Z]+$', $val);
 				else if ($this->rAlphanumeric) $pass = mb_ereg_match('^[a-zA-Z0-9]+$', $val);
 				else if ($this->rEmail) $pass = filter_var(mb_ereg_replace('[^\x00-\x7f]', '-', $val), FILTER_VALIDATE_EMAIL);
 				else if ($this->rURL)   $pass = filter_var(mb_ereg_replace('[^\x00-\x7f]', '-', $val), FILTER_VALIDATE_URL);
 				
-				if ($this->maxLength)
-					$pass = $pass && mb_strlen($val) <= $this->maxLength;
+				if ($this->maxLength) {
+					$pass_length = (($this->type == 'varchar' ? mb_strlen($val, 'utf8') : mb_strlen($val, 'latin1')) <= $this->maxLength);
+					$pass = $pass && $pass_length;
+				}
 				
 				return $pass;
 			}
 			else if ($this->type == 'timestamp') {
-				return mb_ereg('^\d{2,4}.\d\d.\d\d \d\d.\d\d.\d\d$', $val);
+				return (is_string($val) && mb_ereg('^\d{2,4}.\d\d.\d\d \d\d.\d\d.\d\d$', $val));
 			}
 			return false;
 		}
@@ -145,22 +148,20 @@
 	
 	
 	class TMResult {
-		public $success;
+		public $status;
 		public $result;
-		
-		public $error;
 		public $errors;
 		
-		public function __construct($success, $error = NoError) {
-			$this->success = $success;
-			$this->error = $error;
+		public function __construct($status, $result = null, $errors = null) {
+			$this->status = $status;
+			$this->result = $result;
+			$this->errors = $errors;
 		}
 		
-		const NoError = 0;
+		const Success = 0;
 		const InvalidData = 1;
 		const InvalidConditions = 2;
 		const InternalError = 3;
-		
 	}
 	
 	
@@ -171,7 +172,7 @@
 			self::$pdo = $pdo;
 		}
 		
-		protected static $bind_params;				// When building a prepared statement, we store params in here
+		protected static $bind_params;				// When building a prepared statement, we store params here
 		protected function bindBindParams($st) {	// :P
 			for ($i = 0, $n = count(self::$bind_params); $i < $n; ++$i)
 				$st->bindParam($i+1, self::$bind_params[$i]);
@@ -226,12 +227,17 @@
 		//    - return an object, or null if nothing found
 		
 		protected static function objFromRow($row, $prefix) {
-			$cols = array_keys(self::getTableCols());
+			$cols = self::getTableCols();
 			$new_obj = new static();
 			$n_imported_columns = 0;
-			foreach($cols as $col) {
-				$new_obj->$col = $row[$prefix . '_' . $col];
-				if ($new_obj->$col !== null)
+			foreach($cols as $colName => $col) {
+				$new_obj->$colName = $row[$prefix . '_' . $colName];
+				
+				// Convert ints & floats
+				if ($col->type == 'int')        $new_obj->$colName = (int) $new_obj->$colName;
+				else if ($col->type == 'float') $new_obj->$colName = (float) $new_obj->$colName;
+				
+				if ($new_obj->$colName !== null)
 					$n_imported_columns++;
 			}
 			return ($n_imported_columns == 0) ? null : $new_obj;
@@ -265,9 +271,9 @@
 				if (is_array($x)) {
 					$s .= '(';
 					foreach ($x as $y) {
-						if ($conj) $s .= "$conj ";
+						if ($conj) $s .= " $conj ";
 						$s .= $getStringForConditions($y);
-						if ($y instanceof Condition) $conj = $y->conjunction;
+						if ($y instanceof Condition) $conj = $y->conjString();
 					}
 					$s .= ')';
 				}
@@ -286,8 +292,9 @@
 		//  - take an array of fields: {column_name => value}, ... 
 		//  - check that the supplied columns exist, and the values pass validation
 		//  - returns an array of errors: {column_name => error}, ...
+		//  - optionally also check completeness - that all notnull columns are present
 		
-		protected static function validateArray(&$fields) {
+		protected static function validateArray(&$fields, $check_completeness = false) {
 			$class_columns = self::getTableCols();		// [ column_name => Column ]
 			$errors = [ ];
 			
@@ -302,6 +309,12 @@
 					if (!$validated)
 						$errors[$columnName] = ValidationError::InvalidValue;
 				}
+			}
+			
+			if ($check_completeness) {
+				foreach ($class_columns as $columnName => $col)
+					if ($col->rNotNull && !isset($fields[$columnName]))
+						$errors[$columnName] = ValidationError::InvalidValue;
 			}
 			
 			return $errors;
@@ -327,7 +340,6 @@
 				else
 					$errors []= ValidationError::UnknownObject;
 			};
-			
 			$getErrorsForConditions($c);
 			return $errors;
 		}
@@ -354,9 +366,14 @@
 			$table = &self::getTableName();
 			$cols  = &self::getTableCols();
 			
+			if ((is_array($conditions) && count($conditions) == 0) ||
+				(!is_array($conditions) && !($conditions instanceof Condition))) {
+				$res = new TMResult(TMResult::InvalidConditions);
+				return $res;
+			}
 			$errors = self::validateConditions($conditions);
 			if (count($errors)) {
-				$res = new TMResult(false, TMResult::InvalidConditions);
+				$res = new TMResult(TMResult::InvalidConditions);
 				$res->errors = $errors;
 				return $res;
 			}
@@ -420,7 +437,7 @@
 			
 			$r = $st->execute();
 			if ($r === false) {
-				$res = new TMResult(false, TMResult::InternalError);
+				$res = new TMResult(TMResult::InternalError);
 				return $res;
 			}
 			
@@ -489,7 +506,7 @@
 				unset($obj);
 			}
 			
-			$res = new TMResult(true);
+			$res = new TMResult(TMResult::Success);
 			$res->result = &$base_objs;
 			return $res;
 		}
@@ -504,8 +521,9 @@
 		static function update($updates, $conditions, $debug = false) {
 			self::$bind_params = [ ];
 			
-			if (!is_array($conditions) && ! $conditions instanceof Condition) {
-				$res = new TMResult(false, TMResult::InvalidConditions);
+			if ((is_array($conditions) && count($conditions) == 0) ||
+				(!is_array($conditions) && !($conditions instanceof Condition))) {
+				$res = new TMResult(TMResult::InvalidConditions);
 				return $res;
 			}
 			
@@ -514,7 +532,7 @@
 			// Validate updates
 			$errors = self::validateArray($updates);    // [col => val, ...]
 			if (count($errors)) {
-				$res = new TMResult(false, TMResult::InvalidData);
+				$res = new TMResult(TMResult::InvalidData);
 				$res->errors = $errors;
 				return $res;
 			}
@@ -522,7 +540,7 @@
 			// Validate conditions
 			$errors = self::validateConditions($conditions);
 			if (count($errors)) {
-				$res = new TMResult(false, TMResult::InvalidConditions);
+				$res = new TMResult(TMResult::InvalidConditions);
 				$res->errors = $errors;
 				return $res;
 			}
@@ -544,12 +562,12 @@
 			
 			$r = $st->execute();
 			if ($r) {
-				$res = new TMResult(true);
+				$res = new TMResult(TMResult::Success);
 				$res->result = $st->rowCount();
 				return $res;
 			}
 			else {
-				$res = new TMResult(false, TMResult::InternalError);
+				$res = new TMResult(TMResult::InternalError);
 				return $res;
 			}
 		}
@@ -567,9 +585,9 @@
 			$fields = get_object_vars($this);
 			
 			// Check fields are legal
-			$errors = self::validateArray($fields);
+			$errors = self::validateArray($fields, true);
 			if (count($errors)) {
-				$res = new TMResult(false, TMResult::InvalidData);
+				$res = new TMResult(TMResult::InvalidData);
 				$res->errors = $errors;
 				return $res;
 			}
@@ -594,12 +612,12 @@
 			
 			$r = $st->execute();
 			if ($r) {
-				$res = new TMResult(true);
+				$res = new TMResult(TMResult::Success);
 				$res->result = (int) self::$pdo->lastInsertId();
 				return $res;
 			}
 			else {
-				$res = new TMResult(false, TMResult::InternalError);
+				$res = new TMResult(TMResult::InternalError);
 				return $res;
 			}
 		}

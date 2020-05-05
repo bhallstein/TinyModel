@@ -1,0 +1,27 @@
+#!/bin/bash
+
+mysql -u root -p -e \
+   "create database tinymodel_test \
+       default character set utf8 collate utf8_unicode_ci; \
+    grant all on tinymodel_test.* to 'tm_testuser'@'localhost' identified by 'pwd'; \
+    use tinymodel_test; \
+    create table users ( \
+       userid int unsigned not null primary key auto_increment, \
+       username varchar(20) not null, \
+       email varchar(150) not null, \
+       password varchar(32) not null, \
+       date timestamp not null default current_timestamp, \
+       favourite_int int not null, \
+       favourite_float float not null, \
+       biography tinytext not null, \
+       homepage varchar(100)
+    ); \
+    create table things ( \
+       thingid int unsigned not null primary key auto_increment, \
+       thingname varchar(24) not null \
+    ); \
+    create table favourites ( \
+       favouriteid int unsigned not null primary key auto_increment, \
+       userid int unsigned not null, \
+       thing_id int unsigned not null \
+    );"
