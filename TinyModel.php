@@ -23,7 +23,7 @@
 	
 	// Column definition string: 'type [restrictions]'
 	//   type: int float varchar text timestamp
-	// 	 restrictions: alphabetical alphanumeric email url positive notnull maxlength=N
+	//   restrictions: alphabetical alphanumeric email url positive notnull maxlength=N
 	
 	class Column {
 		public function __construct($definition_string) {
@@ -254,7 +254,7 @@
 		
 		
 		// Validate
-		// 	- take an array of fields: {column_name => value}, ... 
+		//  - take an array of fields: {column_name => value}, ... 
 		//  - check that the supplied columns exist, and the values pass validation
 		//  - returns an array of errors: {column_name => error}, ...
 		
@@ -295,7 +295,7 @@
 		
 		
 		// Fetch: fetch rows from the table, using the given conditions & joins
-		// 	- returns:
+		//  - returns:
 		//    - false on db error
 		//    - an array reresenting the returned object(s) on success
 		

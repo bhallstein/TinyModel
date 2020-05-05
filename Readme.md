@@ -171,7 +171,7 @@ At present, this is the only way passwords are handled in TinyModel. It has the 
 
 For a simple web app, you might typically define your TinyModel subclasses in a single file, thereby specifying the tables you wish to communicate with.
 
-The controller layer includes this file, and can then interact with the subclasses, make calls to TinyModel’s `fetch`, `update` and `insert` methods.
+The controller layer includes this file, and can then interact with the subclasses, making calls to TinyModel’s `fetch`, `update` and `insert` methods.
 
 For a functioning example, see the file `demo.php`. (You will need to need to create the relevant database and tables.)
 
