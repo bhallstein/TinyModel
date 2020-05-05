@@ -69,7 +69,24 @@
 	echo "\n";
 	
 	
-	// Geoff favourites the squishy
+	// Update the object's name
+	$r = Thing::update(
+		array('thingname' => "tshirt"),
+		array('thingid' => $thing_id)
+	);
+	if ($r === false)
+		echo "couldn't update the squishy";
+	else if (is_array($r)) {
+		echo "invalid input updating the squishy:\n";
+		print_r($r);
+	}
+	else {
+		echo "updated ", $r, " columns to have name 't-shirt'";
+	}
+	echo "\n";
+	
+	
+	// Geoff favourites the object
 	
 	$f = new Favourite;
 	$f->userid = $geoff_id;
@@ -97,11 +114,11 @@
 	if (!is_array($r))
 		echo "something went terribly wrong.";
 	else {
+		echo "got Geoff, and geoff's favourites table, and the things themselves:\n";
 		print_r($r);
-		echo "got Geoff's fave, joined to the thing itself:\n";
 		$geoff_faves = $r[0]->favourites;
 		$things = $geoff_faves[0]->things;
-		echo $things[0]->thingname;
+		echo "first favourited object name: ", $things[0]->thingname;
 	}
 	
 	echo '</pre>';

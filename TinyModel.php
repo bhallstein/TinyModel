@@ -339,7 +339,7 @@
 		//  - returns the number of altered rows on success
 		
 		static function update($updates, $conditions) {
-			$t_name = self::tableName();
+			$t_name = &self::getTableName();
 			
 			if ($errors = self::validate($updates))		// [col => val, ...]
 				return $errors;
