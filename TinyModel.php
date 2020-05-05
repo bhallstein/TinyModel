@@ -230,7 +230,6 @@
 			}
 
 			else if (is_array($c) && count($c)) {
-				echo "iterating...\n";
 				// Iterate recursively over the array of conditions
 				$getConditionStringForArray = function($a) use(&$getConditionStringForArray) {
 					$conjunction = null;
